@@ -69,7 +69,7 @@ fun PremiumSearchBar(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                cursorBrush = SolidColor(PremiumGreen),
+                cursorBrush = SolidColor(AccentCyan),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = {
                     keyboardController?.hide()

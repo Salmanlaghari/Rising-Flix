@@ -46,16 +46,16 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DeepBlack)
+            .background(DeepBlueBg)
     ) {
-        // Deep Emerald subtle glow behind the logo
+        // Subtle glow behind the logo
         Box(
             modifier = Modifier
                 .size(300.dp)
                 .align(Alignment.Center)
                 .alpha(alphaGlow * 0.4f)
                 .blur(80.dp)
-                .background(PremiumGreen, RoundedCornerShape(150.dp))
+                .background(AccentCyan, RoundedCornerShape(150.dp))
         )
 
         // Logo Container
@@ -68,7 +68,7 @@ fun SplashScreen(
         ) {
             Text(
                 text = "Rising Flix",
-                color = PremiumGreen,
+                color = AccentCyan,
                 fontSize = 42.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = FontFamily.SansSerif,
@@ -103,7 +103,7 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CircularProgressIndicator(
-                color = PremiumGreen,
+                color = AccentCyan,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(28.dp)
             )

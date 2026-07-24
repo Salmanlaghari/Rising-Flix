@@ -7,6 +7,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.salmanlaghari.risingflix.data.VideoPlayerManager
 import com.salmanlaghari.risingflix.ui.screens.MainAppScreen
 import com.salmanlaghari.risingflix.ui.theme.RisingFlixTheme
 import com.salmanlaghari.risingflix.viewmodel.MainViewModel
@@ -27,5 +28,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release ExoPlayer to prevent any background audio leak when app is fully terminated
+        VideoPlayerManager.release()
     }
 }

@@ -10,11 +10,11 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PremiumGreen,
-    secondary = GreenGlow,
+    primary = AccentCyan,
+    secondary = CyanGlow,
     tertiary = GoldAccent,
-    background = DeepBlack,
-    surface = SurfaceDark,
+    background = DeepBlueBg,
+    surface = CardSurfaceDark,
     onPrimary = TrueBlack,
     onSecondary = TextMain,
     onTertiary = TrueBlack,
@@ -28,7 +28,7 @@ fun RisingFlixTheme(content: @Composable () -> Unit) {
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = DeepBlack.toArgb()
+            window.statusBarColor = DeepBlueBg.toArgb()
             window.navigationBarColor = TrueBlack.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
             controller.isAppearanceLightStatusBars = false

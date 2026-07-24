@@ -11,15 +11,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.salmanlaghari.risingflix.data.Category
-import com.salmanlaghari.risingflix.data.VideoItem
-import com.salmanlaghari.risingflix.ui.theme.PremiumGreen
+import com.salmanlaghari.risingflix.data.MovieItem
+import com.salmanlaghari.risingflix.ui.theme.AccentCyan
 import com.salmanlaghari.risingflix.ui.theme.TextMain
-import com.salmanlaghari.risingflix.ui.theme.TextSub
 
 @Composable
 fun CategoryRow(
     category: Category,
-    onVideoClick: (VideoItem) -> Unit,
+    onVideoClick: (MovieItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (category.items.isEmpty()) return
@@ -38,7 +37,7 @@ fun CategoryRow(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Beautiful colored dot representing category
+                // Colored dot representing category
                 Box(
                     modifier = Modifier
                         .size(8.dp)
@@ -47,7 +46,7 @@ fun CategoryRow(
                 ) {
                     Text(
                         text = "•",
-                        color = PremiumGreen,
+                        color = AccentCyan,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.align(Alignment.Center)
@@ -63,7 +62,7 @@ fun CategoryRow(
             }
             Text(
                 text = "See All →",
-                color = PremiumGreen,
+                color = AccentCyan,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )

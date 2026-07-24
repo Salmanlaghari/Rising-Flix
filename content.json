@@ -5,6 +5,7 @@
     "category": "Movies",
     "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
     "thumbnailUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
+    "backdrop": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop",
     "description": "A breathtaking visual masterpiece exploring the uncharted outer edge of the galaxy and the secrets of time-space travel.",
     "rating": "9.8",
     "quality": "8K",
@@ -13,7 +14,9 @@
   },
   "categories": [
     {
+      "id": "cat_mov",
       "name": "Movies",
+      "icon": "movie",
       "items": [
         {
           "id": "mov_01",
@@ -21,6 +24,7 @@
           "category": "Movies",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop",
           "description": "An intense fantasy saga following Sintel as she tracks her lost dragon across the desolate, mystical mountain kingdoms.",
           "rating": "9.2",
           "quality": "8K",
@@ -33,6 +37,7 @@
           "category": "Movies",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200&auto=format&fit=crop",
           "description": "In a post-apocalyptic cyberpunk city, a group of rebel technicians must use advanced quantum memory to stop a giant robot invasion.",
           "rating": "9.0",
           "quality": "4K",
@@ -45,6 +50,7 @@
           "category": "Movies",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1200&auto=format&fit=crop",
           "description": "A classic animated adventure featuring a giant, gentle rabbit who decides to teach three mischievous forest rodents a lesson.",
           "rating": "8.8",
           "quality": "HD+",
@@ -54,7 +60,9 @@
       ]
     },
     {
+      "id": "cat_dra",
       "name": "Dramas",
+      "icon": "face",
       "items": [
         {
           "id": "dra_01",
@@ -62,6 +70,7 @@
           "category": "Dramas",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1200&auto=format&fit=crop",
           "description": "An emotionally gripping romantic drama exploring love, sacrifice, and the unspoken promises that bridge two separate worlds.",
           "rating": "9.5",
           "quality": "8K",
@@ -74,6 +83,7 @@
           "category": "Dramas",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop",
           "description": "As the sun sets on a historic coastal village, two childhood friends uncover long-buried family secrets that will change their destiny.",
           "rating": "9.1",
           "quality": "4K",
@@ -86,6 +96,7 @@
           "category": "Dramas",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?q=80&w=1200&auto=format&fit=crop",
           "description": "A high-stakes legal thriller about a dedicated prosecutor who finds herself trapped in a deep web of corporate conspiracy.",
           "rating": "9.3",
           "quality": "HD+",
@@ -95,7 +106,9 @@
       ]
     },
     {
+      "id": "cat_spo",
       "name": "Sports",
+      "icon": "star",
       "items": [
         {
           "id": "spo_01",
@@ -103,6 +116,7 @@
           "category": "Sports",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop",
           "description": "Relive the absolute best goals, spectacular saves, and legendary moments from the world's biggest football matches.",
           "rating": "9.7",
           "quality": "8K",
@@ -115,6 +129,7 @@
           "category": "Sports",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=1200&auto=format&fit=crop",
           "description": "Adrenaline-fueled adventure capturing riders as they tackle vertical cliffs and drop-offs at breakneck speeds.",
           "rating": "9.4",
           "quality": "4K",
@@ -127,6 +142,7 @@
           "category": "Sports",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200&auto=format&fit=crop",
           "description": "High-octane precision drift racing showcasing the absolute limits of tire grip and vehicle control.",
           "rating": "8.9",
           "quality": "HD+",
@@ -136,7 +152,9 @@
       ]
     },
     {
+      "id": "cat_car",
       "name": "Cartoons",
+      "icon": "face",
       "items": [
         {
           "id": "car_01",
@@ -144,6 +162,7 @@
           "category": "Cartoons",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1200&auto=format&fit=crop",
           "description": "A surreal CGI animated film exploring a whimsical machine world built entirely from weird copper tubes and gears.",
           "rating": "9.1",
           "quality": "8K",
@@ -156,6 +175,7 @@
           "category": "Cartoons",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1200&auto=format&fit=crop",
           "description": "Agent 327 goes undercover in a suspicious barbershop to investigate a mysterious international crime syndicate.",
           "rating": "9.4",
           "quality": "4K",
@@ -168,6 +188,7 @@
           "category": "Cartoons",
           "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
           "thumbnailUrl": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop",
+          "backdrop": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop",
           "description": "More whimsical and comical adventures of the big giant rabbit and his playful little rodent neighbors.",
           "rating": "9.0",
           "quality": "HD+",

@@ -5,10 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,13 +57,13 @@ fun PremiumBottomBar(
             )
             BottomNavItem(
                 icon = Icons.Default.Search,
-                label = "Search",
+                label = "Explore",
                 isActive = currentSection == 1,
                 onClick = { onSectionSelected(1) }
             )
             BottomNavItem(
-                icon = Icons.Default.Category,
-                label = "Premium",
+                icon = Icons.Default.Star,
+                label = "Library",
                 isActive = currentSection == 2,
                 onClick = { onSectionSelected(2) }
             )
@@ -95,13 +95,13 @@ private fun RowScope.BottomNavItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isActive) PremiumGreen else TextSub,
+            tint = if (isActive) AccentCyan else TextSub,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
-            color = if (isActive) PremiumGreen else TextSub,
+            color = if (isActive) AccentCyan else TextSub,
             fontSize = 11.sp,
             fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium
         )

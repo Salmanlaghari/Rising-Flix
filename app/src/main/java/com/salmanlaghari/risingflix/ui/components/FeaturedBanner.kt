@@ -22,13 +22,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.salmanlaghari.risingflix.data.VideoItem
+import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.ui.theme.*
 
 @Composable
 fun FeaturedBanner(
-    video: VideoItem?,
-    onPlayClick: (VideoItem) -> Unit,
+    video: MovieItem?,
+    onPlayClick: (MovieItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (video == null) return
@@ -42,7 +42,7 @@ fun FeaturedBanner(
     ) {
         // High quality background image
         AsyncImage(
-            model = video.thumbnailUrl,
+            model = video.safePoster,
             contentDescription = "Featured Cover",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -75,7 +75,7 @@ fun FeaturedBanner(
                 Box(
                     modifier = Modifier
                         .background(
-                            brush = Brush.horizontalGradient(listOf(Color(0xFFFFD700), Color(0xFFFFA500))),
+                            brush = Brush.horizontalGradient(listOf(GoldAccent, Color(0xFFFFA500))),
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -90,7 +90,7 @@ fun FeaturedBanner(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = video.category,
-                    color = PremiumGreen,
+                    color = AccentCyan,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -112,7 +112,7 @@ fun FeaturedBanner(
 
             // Description
             Text(
-                text = video.description,
+                text = video.safeDescription,
                 color = TextSub,
                 fontSize = 12.sp,
                 maxLines = 2,
@@ -126,7 +126,7 @@ fun FeaturedBanner(
             Button(
                 onClick = { onPlayClick(video) },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = PremiumGreen,
+                    containerColor = AccentCyan,
                     contentColor = TrueBlack
                 ),
                 shape = RoundedCornerShape(14.dp),

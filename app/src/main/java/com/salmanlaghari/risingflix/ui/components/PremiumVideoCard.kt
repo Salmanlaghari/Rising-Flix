@@ -30,12 +30,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.salmanlaghari.risingflix.data.VideoItem
+import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.ui.theme.*
 
 @Composable
 fun PremiumVideoCard(
-    video: VideoItem,
+    video: MovieItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,7 +54,7 @@ fun PremiumVideoCard(
             .scale(scale)
             .border(
                 width = 1.dp,
-                color = if (isPressed) PremiumGreen else BorderSoft,
+                color = if (isPressed) AccentCyan else BorderSoft,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(
@@ -64,7 +64,7 @@ fun PremiumVideoCard(
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = SurfaceDark
+            containerColor = CardSurfaceDark
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 8.dp
@@ -79,7 +79,7 @@ fun PremiumVideoCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             ) {
                 AsyncImage(
-                    model = video.thumbnailUrl,
+                    model = video.safePoster,
                     contentDescription = video.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -102,14 +102,14 @@ fun PremiumVideoCard(
                     modifier = Modifier
                         .padding(8.dp)
                         .background(
-                            brush = Brush.horizontalGradient(listOf(PremiumGreen, Color(0xFF00CC66))),
+                            brush = Brush.horizontalGradient(listOf(AccentCyan, Color(0xFF00CC66))),
                             shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                         .align(Alignment.TopStart)
                 ) {
                     Text(
-                        text = video.quality,
+                        text = video.safeQuality,
                         color = TrueBlack,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -121,7 +121,7 @@ fun PremiumVideoCard(
                     modifier = Modifier
                         .size(46.dp)
                         .background(
-                            brush = Brush.radialGradient(listOf(PremiumGreen, Color(0x9900CC66))),
+                            brush = Brush.radialGradient(listOf(AccentCyan, Color(0x9900CC66))),
                             shape = RoundedCornerShape(50)
                         )
                         .align(Alignment.Center)
@@ -151,7 +151,7 @@ fun PremiumVideoCard(
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = video.rating,
+                        text = video.safeRating,
                         color = TextMain,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -179,13 +179,13 @@ fun PremiumVideoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = video.year,
-                        color = if (video.year.equals("Live", ignoreCase = true)) PremiumGreen else TextSub,
+                        text = video.safeReleaseYear,
+                        color = if (video.safeReleaseYear.equals("Live", ignoreCase = true)) AccentCyan else TextSub,
                         fontSize = 11.sp,
-                        fontWeight = if (video.year.equals("Live", ignoreCase = true)) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (video.safeReleaseYear.equals("Live", ignoreCase = true)) FontWeight.Bold else FontWeight.Normal
                     )
                     Text(
-                        text = video.duration,
+                        text = video.safeDuration,
                         color = TextSub,
                         fontSize = 11.sp
                     )

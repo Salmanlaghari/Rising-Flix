@@ -14,30 +14,32 @@ class ContentResponseParsingTest {
               "featured": {
                 "id": "feat_01",
                 "title": "Epic Space Odyssey",
-                "category": "Movies",
-                "videoUrl": "https://example.com/video.mp4",
-                "thumbnailUrl": "https://example.com/image.jpg",
+                "poster": "https://example.com/image.jpg",
+                "backdrop": "https://example.com/image_back.jpg",
                 "description": "Featured test movie description",
                 "rating": "9.8",
-                "quality": "8K",
-                "year": "2026",
-                "duration": "12 min"
+                "duration": "12 min",
+                "videoUrl": "https://example.com/video.mp4",
+                "releaseYear": "2026",
+                "quality": "8K"
               },
               "categories": [
                 {
+                  "id": "cat_mov",
                   "name": "Movies",
+                  "icon": "movie",
                   "items": [
                     {
                       "id": "mov_01",
                       "title": "Sintel",
-                      "category": "Movies",
-                      "videoUrl": "https://example.com/sintel.mp4",
-                      "thumbnailUrl": "https://example.com/sintel.jpg",
+                      "poster": "https://example.com/sintel.jpg",
+                      "backdrop": "https://example.com/sintel_back.jpg",
                       "description": "Sintel test movie",
                       "rating": "9.2",
-                      "quality": "8K",
-                      "year": "2026",
-                      "duration": "14 min"
+                      "duration": "14 min",
+                      "videoUrl": "https://example.com/sintel.mp4",
+                      "releaseYear": "2026",
+                      "quality": "8K"
                     }
                   ]
                 }
@@ -51,7 +53,6 @@ class ContentResponseParsingTest {
         assertNotNull("Response should be successfully deserialized", response)
         assertNotNull("Featured item should not be null", response.featured)
         assertEquals("Epic Space Odyssey", response.featured?.title)
-        assertEquals("Movies", response.featured?.category)
         assertEquals("8K", response.featured?.quality)
 
         assertEquals(1, response.categories.size)
