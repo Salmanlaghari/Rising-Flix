@@ -1,0 +1,14 @@
+# Gradle cache and logs
+.gradle/
+build/
+app/build/
+
+# Android Studio and local configurations
+*.iml
+.idea/
+local.properties
+.DS_Store
+
+# Key and keystore files
+*.keystore
+*.jks

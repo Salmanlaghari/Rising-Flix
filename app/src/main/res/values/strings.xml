@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rising Flix</string>
+    <string name="tagline">Movies • Dramas • Sports • Cartoons</string>
+    <string name="premium_unlock">Unlock Premium Access</string>
+</resources>
