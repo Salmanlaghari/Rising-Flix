@@ -28,6 +28,9 @@ fun ProfileScreen(
 ) {
     val scrollState = rememberScrollState()
 
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -100,12 +103,31 @@ fun ProfileScreen(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            SettingsItem(icon = Icons.Default.PlayArrow, title = "Video Playback Quality", value = "1080p (Full HD)")
-            SettingsItem(icon = Icons.Default.ArrowDownward, title = "Download Settings", value = "WiFi Only")
-            SettingsItem(icon = Icons.Default.Info, title = "Notifications", value = "Enabled")
-            SettingsItem(icon = Icons.Default.Info, title = "Privacy & Safety")
-            SettingsItem(icon = Icons.Default.Info, title = "About Licensing")
-            SettingsItem(icon = Icons.Default.Delete, title = "Log Out", tint = Color.Red.copy(alpha = 0.8f))
+            SettingsItem(
+                icon = Icons.Default.PlayArrow,
+                title = "Video Playback Quality",
+                value = "1080p (Full HD)"
+            )
+            SettingsItem(
+                icon = Icons.Default.ArrowDownward,
+                title = "Download Settings",
+                value = "WiFi Only"
+            )
+            SettingsItem(
+                icon = Icons.Default.Info,
+                title = "Privacy Policy",
+                onClick = { showPrivacyDialog = true }
+            )
+            SettingsItem(
+                icon = Icons.Default.Info,
+                title = "Terms of Service",
+                onClick = { showTermsDialog = true }
+            )
+            SettingsItem(
+                icon = Icons.Default.Delete,
+                title = "Log Out",
+                tint = Color.Red.copy(alpha = 0.8f)
+            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -121,6 +143,57 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
     }
+
+    // --- PRIVACY POLICY DIALOG ---
+    if (showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyDialog = false },
+            containerColor = CardSurfaceDark,
+            title = { Text(text = "Privacy Policy", color = TextMain, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "Rising Flix operates as a direct player client interface. We do not collect, transmit, or store any personal data or streaming cookies from your device.\n\n" +
+                               "We request INTERNET permissions solely to load video files dynamically. For offline downloaded content, all cached data remains entirely on your internal storage.",
+                        color = TextSub,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyDialog = false }) {
+                    Text(text = "Close", color = AccentCyan, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // --- TERMS OF SERVICE DIALOG ---
+    if (showTermsDialog) {
+        AlertDialog(
+            onDismissRequest = { showTermsDialog = false },
+            containerColor = CardSurfaceDark,
+            title = { Text(text = "Terms of Service", color = TextMain, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "By launching or playing streams inside Rising Flix, you fully agree to our Terms of Service:\n\n" +
+                               "1. Content Disclaimer: We do not host, store, or own any streaming movies or TV shows. All contents are fetched on-demand from public sources.\n\n" +
+                               "2. Permitted Use: This app is completely open source and for personal, non-commercial, and legitimate uses only.",
+                        color = TextSub,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTermsDialog = false }) {
+                    Text(text = "Close", color = AccentCyan, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -128,15 +201,17 @@ private fun SettingsItem(
     icon: ImageVector,
     title: String,
     value: String? = null,
-    tint: Color = AccentCyan
+    tint: Color = AccentCyan,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(CardSurfaceDark, RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(CardSurfaceDark)
             .border(1.dp, BorderSoft.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
-            .padding(16.dp)
-            .clickable { /* Simulate configuration interactions */ },
+            .clickable(onClick = onClick)
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
