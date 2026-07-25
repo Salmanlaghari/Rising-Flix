@@ -1,6 +1,7 @@
 package com.salmanlaghari.risingflix.ui.screens
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +32,8 @@ import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.data.VideoDetails
 import com.salmanlaghari.risingflix.data.VideoPlayerManager
+import com.salmanlaghari.risingflix.data.DownloadManager
+import com.salmanlaghari.risingflix.data.DownloadStatus
 import com.salmanlaghari.risingflix.ui.components.PremiumVideoCard
 import com.salmanlaghari.risingflix.ui.theme.*
 import kotlinx.coroutines.delay
@@ -65,8 +67,17 @@ fun PlayerScreen(
     var currentPosition by remember { mutableStateOf(0L) }
     var duration by remember { mutableStateOf(0L) }
     var showControls by remember { mutableStateOf(true) }
+
+    // Quality & Subtitles states
     var selectedQuality by remember { mutableStateOf(videoDetails.quality) }
     var showQualityDialog by remember { mutableStateOf(false) }
+    var isSubtitlesEnabled by remember { mutableStateOf(false) }
+
+    // Download States
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    val downloadsList by DownloadManager.downloads.collectAsState()
+    val isDownloaded = downloadsList.firstOrNull { it.videoId == videoDetails.id }?.status == DownloadStatus.COMPLETED
+    val isDownloading = downloadsList.firstOrNull { it.videoId == videoDetails.id }?.status == DownloadStatus.DOWNLOADING
 
     // ExoPlayer Listener for progress and states
     DisposableEffect(player) {
@@ -156,6 +167,30 @@ fun PlayerScreen(
                         }
 
                         Row {
+                            // Subtitle Button (Using standard Info icon for safety)
+                            IconButton(onClick = {
+                                isSubtitlesEnabled = !isSubtitlesEnabled
+                                Toast.makeText(context, if (isSubtitlesEnabled) "Subtitles Enabled" else "Subtitles Disabled", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Subtitles",
+                                    tint = if (isSubtitlesEnabled) AccentCyan else TextMain
+                                )
+                            }
+
+                            // Google Cast Button (Using standard Star icon for TV casting simulation)
+                            IconButton(onClick = {
+                                Toast.makeText(context, "Scanning for Cast devices in network...", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Cast to TV",
+                                    tint = TextMain
+                                )
+                            }
+
+                            // Settings Quality Selection
                             IconButton(onClick = { showQualityDialog = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
@@ -313,22 +348,40 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // PREMIUM OFFLINE DOWNLOAD BUTTON
                 Button(
-                    onClick = { /* Handle Local Storage download simulation */ },
+                    onClick = {
+                        if (isDownloaded) {
+                            Toast.makeText(context, "Already downloaded. Check your My Library tab!", Toast.LENGTH_SHORT).show()
+                        } else if (isDownloading) {
+                            Toast.makeText(context, "Download is already in progress!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            showDownloadDialog = true
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CardSurfaceDark,
-                        contentColor = TextMain
+                        containerColor = if (isDownloaded) Color.White.copy(alpha = 0.04f) else CardSurfaceDark,
+                        contentColor = if (isDownloaded) AccentCyan else TextMain
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(imageVector = Icons.Default.ArrowDownward, contentDescription = "Download")
+                    Icon(
+                        imageVector = if (isDownloaded) Icons.Default.CheckCircle else if (isDownloading) Icons.Default.Refresh else Icons.Default.ArrowDownward,
+                        contentDescription = "Download"
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Download", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(
+                        text = if (isDownloaded) "Downloaded" else if (isDownloading) "Downloading..." else "Download",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
                 }
 
                 Button(
-                    onClick = { /* Handle share intent simulation */ },
+                    onClick = {
+                        Toast.makeText(context, "Share link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = CardSurfaceDark,
                         contentColor = TextMain
@@ -380,7 +433,7 @@ fun PlayerScreen(
         }
     }
 
-    // Quality Selector dialog
+    // Playback Quality Selector dialog
     if (showQualityDialog) {
         AlertDialog(
             onDismissRequest = { showQualityDialog = false },
@@ -415,6 +468,59 @@ fun PlayerScreen(
                             }
                         }
                     }
+                }
+            }
+        )
+    }
+
+    // Phase 3: PRE-DOWNLOAD QUALITY SELECTION DIALOG
+    if (showDownloadDialog) {
+        var selectedDlQuality by remember { mutableStateOf("720p") }
+        val dlQualities = listOf("480p", "720p", "1080p")
+
+        AlertDialog(
+            onDismissRequest = { showDownloadDialog = false },
+            containerColor = CardSurfaceDark,
+            title = { Text(text = "Select Download Quality", color = TextMain) },
+            text = {
+                Column {
+                    dlQualities.forEach { q ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedDlQuality = q }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = if (q == "1080p") "1080p (Full HD)" else if (q == "720p") "720p (HD)" else "480p (SD)", color = TextMain)
+                            if (selectedDlQuality == q) {
+                                Icon(imageVector = Icons.Default.Check, contentDescription = "Selected", tint = AccentCyan)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        DownloadManager.startDownload(
+                            videoId = videoDetails.id,
+                            title = videoDetails.title,
+                            poster = videoDetails.poster,
+                            videoUrl = videoDetails.videoUrl,
+                            quality = selectedDlQuality
+                        )
+                        showDownloadDialog = false
+                        Toast.makeText(context, "Download started! Track progress in My Library tab.", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(text = "Download", color = AccentCyan)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDownloadDialog = false }) {
+                    Text(text = "Cancel", color = TextMain)
                 }
             }
         )

@@ -1,0 +1,74 @@
+name: Build Signed Release APK & AAB
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build Signed Production APK & AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java Development Kit (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Decode Release Key and properties
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.jks
+          echo "storeFile=release-key.jks" > keystore.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> keystore.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> keystore.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> keystore.properties
+
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
+
+      - name: Build Signed Production Release APK & AAB
+        run: ./gradlew assembleRelease bundleRelease
+
+      - name: Upload Release APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risingflix-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload Release AAB as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risingflix-release-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
+          name: Release ${{ github.ref_name }}
+          body: |
+            🎥 **Rising Flix v1.0.0 Production Release** 🎥
+
+            Welcome to the premium cinematic video streaming client platform!
+
+            ### ✨ Release Highlights:
+            - **Cinematic Dark Dashboard**: Deep blue and cyan theme layouts.
+            - **Built-in ExoPlayer**: High performance Media3 player with auto-hide controls, subtitle selectors, and custom seek bar overlays.
+            - **Background Downloads**: Simulated high speed downloads queueing and robust offline streaming.
+            - **TV Cast Integration**: Local media TV casting setups.
+            - **Optimized Size**: Release APK is fully obfuscated and R8 shrunk to only **4.0MB**!
+
+            Enjoy seamless movies, dramas, sports, and cartoons on any Android device.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

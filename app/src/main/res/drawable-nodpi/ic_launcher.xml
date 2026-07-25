@@ -1,24 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="512dp"
     android:height="512dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
 
-    <!-- Background Circle -->
-    <path
-        android:fillColor="#050505"
-        android:pathData="M256,256m-256,0a256,256 0,1 0,512 0a256,256 0,1 0,-512 0" />
+    <!-- Deep Gradient Blue Background Layer (#0F172A to #1E40AF) -->
+    <path android:pathData="M0,0 h512 v512 h-512 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="512"
+                android:endY="512"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#0F172A" />
+                <item android:offset="1.0" android:color="#1E40AF" />
+            </gradient>
+        </aapt:attr>
+    </path>
 
-    <!-- Neon Accent Glow Outer Ring -->
+    <!-- Film Strip Frame Outlines (Stylized 3D effect) -->
     <path
-        android:strokeColor="#00FF7F"
-        android:strokeWidth="12"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="10"
         android:strokeLineCap="round"
-        android:pathData="M256,40C136.7,40 40,136.7 40,256s96.7,216 216,216s216,-96.7 216,-216S375.3,40 256,40z" />
+        android:pathData="M112,90 h288 v332 h-288 z" />
 
-    <!-- Stylized Cinematic 'R' and Play Icon merged -->
+    <!-- Film Strip Top and Bottom Sprocket Holes -->
+    <path android:fillColor="#06B6D4" android:pathData="M142,120 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M192,120 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M242,120 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M292,120 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M342,120 h20 v20 h-20 z" />
+
+    <path android:fillColor="#06B6D4" android:pathData="M142,372 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M192,372 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M242,372 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M292,372 h20 v20 h-20 z" />
+    <path android:fillColor="#06B6D4" android:pathData="M342,372 h20 v20 h-20 z" />
+
+    <!-- Stylized Central 3D White Play Button inside the Strip -->
     <path
-        android:fillColor="#00FF7F"
-        android:pathData="M180,140 L380,256 L180,372 Z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M200,180 L342,256 L200,332 Z" />
 </vector>

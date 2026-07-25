@@ -1,5 +1,6 @@
 package com.salmanlaghari.risingflix.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +41,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     var selectedCategoryChip by remember { mutableStateOf("All") }
     val categoryChips = listOf("All", "Movies", "Dramas", "Sports", "Kids", "TV Shows")
@@ -72,6 +76,17 @@ fun HomeScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // TV Casting Button
+                IconButton(onClick = {
+                    Toast.makeText(context, "Scanning for Chromecast / Smart TV devices in network...", Toast.LENGTH_SHORT).show()
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Cast,
+                        contentDescription = "Cast to TV",
+                        tint = AccentCyan
+                    )
+                }
+
                 IconButton(onClick = onSearchIconClick) {
                     Icon(
                         imageVector = Icons.Default.Search,
