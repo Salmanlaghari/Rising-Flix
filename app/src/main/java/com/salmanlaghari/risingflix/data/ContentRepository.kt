@@ -17,11 +17,13 @@ class ContentRepository(private val apiService: ApiService) {
         }
         try {
             val response = apiService.getContentList()
-            cachedContentList = response
-            response
+            val merged = mergeMovieBoxContent(response)
+            cachedContentList = merged
+            merged
         } catch (e: Exception) {
             // If cache exists, fall back to it
-            cachedContentList ?: getFallbackContentList()
+            val mergedFallback = mergeMovieBoxContent(getFallbackContentList())
+            cachedContentList ?: mergedFallback
         }
     }
 
@@ -79,6 +81,352 @@ class ContentRepository(private val apiService: ApiService) {
         } catch (e: Exception) {
             cachedVideoDetails[id] ?: getFallbackVideoDetails(id)
         }
+    }
+
+    // --- MOVIEBOX.PK CONTENT INTEGRATION (MERGER) ---
+
+    private fun mergeMovieBoxContent(originalResponse: ContentResponse): ContentResponse {
+        val movieboxCategories = listOf(
+            Category(
+                id = "cat_trending_mb",
+                name = "Trending",
+                icon = "star",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_trend_01",
+                        title = "Avatar: The Last Airbender",
+                        poster = "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1200",
+                        description = "A young boy known as the Avatar must master the four elemental powers to save a world at war.",
+                        rating = "9.5",
+                        duration = "45 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                        category = "Trending",
+                        year = "2024",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_trend_02",
+                        title = "A Shop for Killers",
+                        poster = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200",
+                        description = "After her uncle's sudden death, a college student inherits a mysterious shopping mall frequented by deadly killers.",
+                        rating = "9.2",
+                        duration = "50 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+                        category = "Trending",
+                        year = "2024",
+                        quality = "8K"
+                    ),
+                    MovieItem(
+                        id = "mb_trend_03",
+                        title = "Colony",
+                        poster = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200",
+                        description = "In a near-future dystopian Los Angeles, a family struggles to survive and bring liberty back to the people.",
+                        rating = "9.6",
+                        duration = "48 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                        category = "Trending",
+                        year = "2026",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_cinema_mb",
+                name = "Cinema",
+                icon = "movie",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_cinema_01",
+                        title = "72 Hours",
+                        poster = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1200",
+                        description = "An action-packed race against time where a detective has exactly 72 hours to dismantle an international syndicate.",
+                        rating = "8.9",
+                        duration = "118 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                        category = "Cinema",
+                        year = "2026",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_cinema_02",
+                        title = "The Death of Robin Hood",
+                        poster = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1200",
+                        description = "An aging Robin Hood grapples with his past and battles a ruthless new lord to secure his legacy.",
+                        rating = "9.3",
+                        duration = "125 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+                        category = "Cinema",
+                        year = "2026",
+                        quality = "8K"
+                    ),
+                    MovieItem(
+                        id = "mb_cinema_03",
+                        title = "Star Wars: The Mandalorian and Grogu",
+                        poster = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1200",
+                        description = "The legendary bounty hunter and his powerful ward Grogu set out on a new cosmic journey through the outer rim.",
+                        rating = "9.7",
+                        duration = "132 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                        category = "Cinema",
+                        year = "2026",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_bollywood_mb",
+                name = "Bollywood",
+                icon = "face",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_bolly_01",
+                        title = "Animal Kingdom: Redemption",
+                        poster = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200",
+                        description = "An intense high-drama family saga of power, loyalty, and retribution in the underworld.",
+                        rating = "9.1",
+                        duration = "165 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                        category = "Bollywood",
+                        year = "2025",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_bolly_02",
+                        title = "Kalki 2898 AD",
+                        poster = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1200",
+                        description = "A futuristic sci-fi epic inspired by ancient mythology, depicting the arrival of a divine avatar.",
+                        rating = "9.4",
+                        duration = "172 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+                        category = "Bollywood",
+                        year = "2024",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_punjabi_mb",
+                name = "Punjabi",
+                icon = "music_note",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_punj_01",
+                        title = "Jatt & Juliet 3",
+                        poster = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200",
+                        description = "The beloved romantic comedy duo returns for a third installment filled with laughter, chaos, and love.",
+                        rating = "9.0",
+                        duration = "135 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+                        category = "Punjabi",
+                        year = "2024",
+                        quality = "HD+"
+                    ),
+                    MovieItem(
+                        id = "mb_punj_02",
+                        title = "Sheran Di Kaum Punjabi",
+                        poster = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200",
+                        description = "A historical drama celebrating the courage, valor, and rich heritage of Punjabi warriors.",
+                        rating = "9.3",
+                        duration = "142 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                        category = "Punjabi",
+                        year = "2025",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_hollywood_mb",
+                name = "Hollywood",
+                icon = "movie",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_holly_01",
+                        title = "Enola Holmes 3",
+                        poster = "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1200",
+                        description = "Enola takes on her most complex case yet, involving a network of elite conspiracies in Victorian London.",
+                        rating = "9.0",
+                        duration = "115 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                        category = "Hollywood",
+                        year = "2025",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_holly_02",
+                        title = "Dune: Prophecy",
+                        poster = "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=1200",
+                        description = "Set 10,000 years before the rise of Paul Atreides, tracing the origins of the legendary Bene Gesserit sisterhood.",
+                        rating = "9.5",
+                        duration = "60 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+                        category = "Hollywood",
+                        year = "2025",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_asian_mb",
+                name = "Asian",
+                icon = "language",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_asian_01",
+                        title = "The East Palace",
+                        poster = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200",
+                        description = "A classic Chinese historical drama outlining intrigue, forbidden romance, and the rise of a new general.",
+                        rating = "9.2",
+                        duration = "45 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                        category = "Asian",
+                        year = "2026",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_asian_02",
+                        title = "My Idol, My Debut",
+                        poster = "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200",
+                        description = "Follow five young music trainees through trials and triumphs in their quest to become the next global K-Pop group.",
+                        rating = "8.9",
+                        duration = "40 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+                        category = "Asian",
+                        year = "2025",
+                        quality = "HD+"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_south_indian_mb",
+                name = "South Indian",
+                icon = "star",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_south_01",
+                        title = "Pushpa 2: The Rule",
+                        poster = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=1200",
+                        description = "The epic conclusion to Pushpa's rise through the red sandalwood smuggling empire, facing fierce opposition.",
+                        rating = "9.6",
+                        duration = "168 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                        category = "South Indian",
+                        year = "2025",
+                        quality = "8K"
+                    ),
+                    MovieItem(
+                        id = "mb_south_02",
+                        title = "Devara: Part 1",
+                        poster = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200",
+                        description = "An intense action chronicle depicting coastal lands where an iron-willed protector fights to protect his people.",
+                        rating = "9.0",
+                        duration = "158 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                        category = "South Indian",
+                        year = "2024",
+                        quality = "4K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_western_tv_mb",
+                name = "Western TV",
+                icon = "tv",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_west_01",
+                        title = "Tulsa King: Season 2",
+                        poster = "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?q=80&w=1200",
+                        description = "Dwight 'The General' Manfredi expands his criminal empire in Tulsa while defending his turf against federal eyes.",
+                        rating = "9.3",
+                        duration = "50 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                        category = "Western TV",
+                        year = "2024",
+                        quality = "4K"
+                    ),
+                    MovieItem(
+                        id = "mb_west_02",
+                        title = "The Night Agent: Season 2",
+                        poster = "https://images.unsplash.com/photo-1531315630201-bb15abeb1653?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1531315630201-bb15abeb1653?q=80&w=1200",
+                        description = "The low-level FBI agent returns for another pulse-pounding mission inside the highest levels of the White House.",
+                        rating = "9.4",
+                        duration = "48 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+                        category = "Western TV",
+                        year = "2025",
+                        quality = "4K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_premium_mb",
+                name = "Premium",
+                icon = "workspace_premium",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_prem_01",
+                        title = "Wednesday: Season 2",
+                        poster = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200",
+                        description = "Wednesday Addams returns to Nevermore Academy to investigate a sinister new web of dark family secrets.",
+                        rating = "9.6",
+                        duration = "55 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+                        category = "Premium",
+                        year = "2025",
+                        quality = "8K"
+                    ),
+                    MovieItem(
+                        id = "mb_prem_02",
+                        title = "Spider-Noir: True-Hue Color",
+                        poster = "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=1200",
+                        description = "In 1930s New York, an aging private investigator and superhero must confront his past in a fully colored noir landscape.",
+                        rating = "9.5",
+                        duration = "52 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                        category = "Premium",
+                        year = "2025",
+                        quality = "4K"
+                    )
+                )
+            )
+        )
+
+        // Combine categories, avoiding duplicate category names
+        val originalCategories = originalResponse.categories.toMutableList()
+        movieboxCategories.forEach { movieboxCat ->
+            val index = originalCategories.indexOfFirst { it.name.equals(movieboxCat.name, ignoreCase = true) }
+            if (index != -1) {
+                // If category already exists, merge the items
+                val combinedItems = (originalCategories[index].items + movieboxCat.items).distinctBy { it.id }
+                originalCategories[index] = originalCategories[index].copy(items = combinedItems)
+            } else {
+                // Otherwise, add the new moviebox category
+                originalCategories.add(movieboxCat)
+            }
+        }
+
+        return originalResponse.copy(categories = originalCategories)
     }
 
     // --- FALLBACK MOCK DATA GENERATORS (Ensures robust playback/UI reviews) ---
@@ -174,7 +522,7 @@ class ContentRepository(private val apiService: ApiService) {
     }
 
     private fun getFallbackVideoDetails(id: String): VideoDetails {
-        val list = getFallbackContentList()
+        val list = mergeMovieBoxContent(getFallbackContentList())
         val allItems = list.categories.flatMap { it.items } + listOfNotNull(list.featured)
         val matchedItem = allItems.firstOrNull { it.id == id } ?: list.featured!!
 
@@ -189,9 +537,9 @@ class ContentRepository(private val apiService: ApiService) {
             videoUrl = matchedItem.videoUrl,
             releaseYear = matchedItem.safeReleaseYear,
             genre = matchedItem.category,
-            language = "English / Urdu",
+            language = "English / Urdu / Punjabi",
             quality = matchedItem.safeQuality,
-            relatedItems = allItems.filter { it.id != matchedItem.id }
+            relatedItems = allItems.filter { it.id != matchedItem.id }.take(5)
         )
     }
 }
