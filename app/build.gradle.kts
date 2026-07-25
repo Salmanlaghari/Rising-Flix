@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "com.salmanlaghari.risingflix"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.salmanlaghari.risingflix"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 10000
         versionName = "1.0.0"
 
