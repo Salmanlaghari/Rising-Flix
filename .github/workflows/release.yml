@@ -1,4 +1,4 @@
-name: Build Signed Release APK
+name: Build Signed Release APK & AAB
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build Signed Production APK
+    name: Build Signed Production APK & AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -32,14 +32,28 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
-      - name: Build Signed Production Release APK
-        run: ./gradlew assembleRelease
+      - name: Build Signed Production Release APK & AAB
+        run: ./gradlew assembleRelease bundleRelease
+
+      - name: Upload Release APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risingflix-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload Release AAB as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risingflix-release-aab
+          path: app/build/outputs/bundle/release/app-release.aab
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
           name: Release ${{ github.ref_name }}
           body: |
             🎥 **Rising Flix v1.0.0 Production Release** 🎥
