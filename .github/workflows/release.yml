@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'jules-*'
+      - 'feature/phase-4-final-release-239'
     tags:
       - 'v*'
   workflow_dispatch:
