@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.androidx.mediarouter)
     implementation(libs.google.play.services.cast)
+    implementation(libs.jsoup)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
