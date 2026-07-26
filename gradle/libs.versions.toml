@@ -15,8 +15,10 @@ coil = "2.6.0"
 retrofit = "2.11.0"
 mediarouter = "1.7.0"
 playServicesCast = "21.4.0"
+jsoup = "1.18.1"
 
 [libraries]
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
