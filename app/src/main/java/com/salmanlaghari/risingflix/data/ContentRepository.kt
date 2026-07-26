@@ -166,12 +166,12 @@ class ContentRepository(private val apiService: ApiService) {
                     ),
                     MovieItem(
                         id = "mb_cinema_03",
-                        title = "The Furious",
-                        poster = "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1200",
-                        description = "High-octane action thriller highlighting a street racer who enters a dangerous underworld after a family tragedy.",
-                        rating = "9.5",
-                        duration = "110 min",
+                        title = "Star Wars: The Mandalorian and Grogu",
+                        poster = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1200",
+                        description = "The legendary bounty hunter and his powerful ward Grogu set out on a new cosmic journey through the outer rim.",
+                        rating = "9.7",
+                        duration = "132 min",
                         videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Cinema",
                         year = "2026",
@@ -180,47 +180,67 @@ class ContentRepository(private val apiService: ApiService) {
                 )
             ),
             Category(
-                id = "cat_hindi_mb",
-                name = "Hindi",
+                id = "cat_bollywood_mb",
+                name = "Bollywood",
                 icon = "face",
                 items = listOf(
                     MovieItem(
-                        id = "mb_hindi_01",
-                        title = "Wednesday [Hindi]",
-                        poster = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200",
-                        description = "The highly anticipated Hindi dubbed version of Wednesday Addams' dark, mystery-filled adventure.",
-                        rating = "9.4",
-                        duration = "52 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-                        category = "Hindi",
-                        year = "2025",
-                        quality = "8K"
-                    ),
-                    MovieItem(
-                        id = "mb_hindi_02",
-                        title = "Animal [Hindi]",
+                        id = "mb_bolly_01",
+                        title = "Animal Kingdom: Redemption",
                         poster = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600",
                         backdrop = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200",
                         description = "An intense high-drama family saga of power, loyalty, and retribution in the underworld.",
                         rating = "9.1",
                         duration = "165 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-                        category = "Hindi",
-                        year = "2024",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                        category = "Bollywood",
+                        year = "2025",
                         quality = "4K"
                     ),
                     MovieItem(
-                        id = "mb_hindi_03",
-                        title = "Kalki 2898 AD [Hindi]",
+                        id = "mb_bolly_02",
+                        title = "Kalki 2898 AD",
                         poster = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=600",
                         backdrop = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1200",
-                        description = "A futuristic sci-fi epic inspired by ancient mythology, depicting the arrival of a divine avatar in Hindi.",
-                        rating = "9.3",
+                        description = "A futuristic sci-fi epic inspired by ancient mythology, depicting the arrival of a divine avatar.",
+                        rating = "9.4",
                         duration = "172 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-                        category = "Hindi",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+                        category = "Bollywood",
                         year = "2024",
+                        quality = "8K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_punjabi_mb",
+                name = "Punjabi",
+                icon = "music_note",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_punj_01",
+                        title = "Jatt & Juliet 3",
+                        poster = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200",
+                        description = "The beloved romantic comedy duo returns for a third installment filled with laughter, chaos, and love.",
+                        rating = "9.0",
+                        duration = "135 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+                        category = "Punjabi",
+                        year = "2024",
+                        quality = "HD+"
+                    ),
+                    MovieItem(
+                        id = "mb_punj_02",
+                        title = "Sheran Di Kaum Punjabi",
+                        poster = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200",
+                        description = "A historical drama celebrating the courage, valor, and rich heritage of Punjabi warriors.",
+                        rating = "9.3",
+                        duration = "142 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                        category = "Punjabi",
+                        year = "2025",
                         quality = "8K"
                     )
                 )
@@ -255,65 +275,6 @@ class ContentRepository(private val apiService: ApiService) {
                         category = "Hollywood",
                         year = "2025",
                         quality = "8K"
-                    ),
-                    MovieItem(
-                        id = "mb_holly_03",
-                        title = "Star Wars: The Mandalorian and Grogu",
-                        poster = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1200",
-                        description = "The legendary bounty hunter and his powerful ward Grogu set out on a new cosmic journey through the outer rim.",
-                        rating = "9.7",
-                        duration = "132 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                        category = "Hollywood",
-                        year = "2026",
-                        quality = "8K"
-                    )
-                )
-            ),
-            Category(
-                id = "cat_south_indian_mb",
-                name = "South Indian",
-                icon = "star",
-                items = listOf(
-                    MovieItem(
-                        id = "mb_south_01",
-                        title = "Pushpa 2: The Rule",
-                        poster = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=1200",
-                        description = "The epic conclusion to Pushpa's rise through the red sandalwood smuggling empire, facing fierce opposition.",
-                        rating = "9.6",
-                        duration = "168 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                        category = "South Indian",
-                        year = "2025",
-                        quality = "8K"
-                    ),
-                    MovieItem(
-                        id = "mb_south_02",
-                        title = "Devara: Part 1",
-                        poster = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200",
-                        description = "An intense action chronicle depicting coastal lands where an iron-willed protector fights to protect his people.",
-                        rating = "9.0",
-                        duration = "158 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-                        category = "South Indian",
-                        year = "2024",
-                        quality = "4K"
-                    ),
-                    MovieItem(
-                        id = "mb_south_03",
-                        title = "Salaar: Ceasefire",
-                        poster = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200",
-                        description = "In the lawless city of Khansaar, a commander goes to extreme lengths to protect his childhood friend and secure the throne.",
-                        rating = "9.1",
-                        duration = "175 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-                        category = "South Indian",
-                        year = "2024",
-                        quality = "4K"
                     )
                 )
             ),
@@ -347,111 +308,105 @@ class ContentRepository(private val apiService: ApiService) {
                         category = "Asian",
                         year = "2025",
                         quality = "HD+"
-                    ),
-                    MovieItem(
-                        id = "mb_asian_03",
-                        title = "A Shop for Killers",
-                        poster = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200",
-                        description = "An action-packed Asian thriller mapping a young student's struggle to defend her home against high-tech hitmen.",
-                        rating = "9.1",
-                        duration = "50 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-                        category = "Asian",
-                        year = "2024",
-                        quality = "4K"
                     )
                 )
             ),
             Category(
-                id = "cat_sports_mb",
-                name = "Sports",
-                icon = "sports_soccer",
+                id = "cat_south_indian_mb",
+                name = "South Indian",
+                icon = "star",
                 items = listOf(
                     MovieItem(
-                        id = "mb_sports_01",
-                        title = "WWE Night of Champions 2026",
-                        poster = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1200",
-                        description = "Relive the absolute best matchups, incredible title contests, and legendary high-flying wrestling action.",
-                        rating = "9.5",
-                        duration = "180 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-                        category = "Sports",
-                        year = "2026",
-                        quality = "8K"
-                    ),
-                    MovieItem(
-                        id = "mb_sports_02",
-                        title = "All American: Season 8",
-                        poster = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200",
-                        description = "A rising high school football player from South LA is recruited to play for Beverly Hills High, bringing cultural crashes.",
-                        rating = "9.2",
-                        duration = "45 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-                        category = "Sports",
-                        year = "2018",
-                        quality = "4K"
-                    ),
-                    MovieItem(
-                        id = "mb_sports_03",
-                        title = "World Football Championship Highlights",
-                        poster = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1200",
-                        description = "The absolute best goals, spectacular saves, and legendary moments from the world's biggest football matches.",
-                        rating = "9.7",
-                        duration = "5 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-                        category = "Sports",
-                        year = "2026",
-                        quality = "8K"
-                    )
-                )
-            ),
-            Category(
-                id = "cat_cartoons_mb",
-                name = "Cartoons",
-                icon = "toys",
-                items = listOf(
-                    MovieItem(
-                        id = "mb_cart_01",
-                        title = "X-Men '97",
-                        poster = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1200",
-                        description = "The legendary band of mutants returns to protect a world that hates and fears them in this nostalgic animated sequel.",
+                        id = "mb_south_01",
+                        title = "Pushpa 2: The Rule",
+                        poster = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1444492412393-5510b1a27e7f?q=80&w=1200",
+                        description = "The epic conclusion to Pushpa's rise through the red sandalwood smuggling empire, facing fierce opposition.",
                         rating = "9.6",
-                        duration = "30 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-                        category = "Cartoons",
-                        year = "2024",
+                        duration = "168 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                        category = "South Indian",
+                        year = "2025",
                         quality = "8K"
                     ),
                     MovieItem(
-                        id = "mb_cart_02",
-                        title = "Rick and Morty",
-                        poster = "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1200",
-                        description = "An eccentric, super-genius scientist drags his timid grandson on wild, dangerous, multi-dimensional space adventures.",
-                        rating = "9.4",
-                        duration = "22 min",
+                        id = "mb_south_02",
+                        title = "Devara: Part 1",
+                        poster = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200",
+                        description = "An intense action chronicle depicting coastal lands where an iron-willed protector fights to protect his people.",
+                        rating = "9.0",
+                        duration = "158 min",
                         videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-                        category = "Cartoons",
+                        category = "South Indian",
+                        year = "2024",
+                        quality = "4K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_western_tv_mb",
+                name = "Western TV",
+                icon = "tv",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_west_01",
+                        title = "Tulsa King: Season 2",
+                        poster = "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?q=80&w=1200",
+                        description = "Dwight 'The General' Manfredi expands his criminal empire in Tulsa while defending his turf against federal eyes.",
+                        rating = "9.3",
+                        duration = "50 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                        category = "Western TV",
                         year = "2024",
                         quality = "4K"
                     ),
                     MovieItem(
-                        id = "mb_cart_03",
-                        title = "Mushoku Tensei: Jobless Reincarnation",
-                        poster = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600",
-                        backdrop = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200",
-                        description = "An unaccomplished man is reborn into a magical medieval fantasy world, retaining his memories and seeking a fresh start.",
-                        rating = "9.1",
-                        duration = "24 min",
-                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                        category = "Cartoons",
-                        year = "2022",
+                        id = "mb_west_02",
+                        title = "The Night Agent: Season 2",
+                        poster = "https://images.unsplash.com/photo-1531315630201-bb15abeb1653?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1531315630201-bb15abeb1653?q=80&w=1200",
+                        description = "The low-level FBI agent returns for another pulse-pounding mission inside the highest levels of the White House.",
+                        rating = "9.4",
+                        duration = "48 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+                        category = "Western TV",
+                        year = "2025",
+                        quality = "4K"
+                    )
+                )
+            ),
+            Category(
+                id = "cat_premium_mb",
+                name = "Premium",
+                icon = "workspace_premium",
+                items = listOf(
+                    MovieItem(
+                        id = "mb_prem_01",
+                        title = "Wednesday: Season 2",
+                        poster = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200",
+                        description = "Wednesday Addams returns to Nevermore Academy to investigate a sinister new web of dark family secrets.",
+                        rating = "9.6",
+                        duration = "55 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+                        category = "Premium",
+                        year = "2025",
                         quality = "8K"
+                    ),
+                    MovieItem(
+                        id = "mb_prem_02",
+                        title = "Spider-Noir: True-Hue Color",
+                        poster = "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=600",
+                        backdrop = "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=1200",
+                        description = "In 1930s New York, an aging private investigator and superhero must confront his past in a fully colored noir landscape.",
+                        rating = "9.5",
+                        duration = "52 min",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                        category = "Premium",
+                        year = "2025",
+                        quality = "4K"
                     )
                 )
             )
