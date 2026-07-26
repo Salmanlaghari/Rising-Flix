@@ -2,8 +2,13 @@ name: Build Signed Release APK & AAB
 
 on:
   push:
+    branches:
+      - main
+      - 'jules-*'
+      - 'feature/phase-4-final-release-239'
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,17 +28,25 @@ jobs:
 
       - name: Decode Release Key and properties
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.jks
-          echo "storeFile=release-key.jks" > keystore.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> keystore.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> keystore.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> keystore.properties
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo -n "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.jks
+            echo "storeFile=release-key.jks" > keystore.properties
+            echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> keystore.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> keystore.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> keystore.properties
+          fi
 
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
       - name: Build Signed Production Release APK & AAB
         run: ./gradlew assembleRelease bundleRelease
+
+      - name: Rename Unsigned APK if needed
+        run: |
+          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release.apk
+          fi
 
       - name: Upload Release APK as Workflow Artifact
         uses: actions/upload-artifact@v4
@@ -48,6 +61,7 @@ jobs:
           path: app/build/outputs/bundle/release/app-release.aab
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         id: create_release
         uses: softprops/action-gh-release@v1
         with:

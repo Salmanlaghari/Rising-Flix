@@ -190,7 +190,7 @@ fun BuiltInPlayerScreen(
                             )
                             Text(
                                 text = "${video.category} • ${video.quality}",
-                                color = PremiumGreen,
+                                color = AccentCyan,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -239,7 +239,7 @@ fun BuiltInPlayerScreen(
                     Box(
                         modifier = Modifier
                             .size(72.dp)
-                            .background(PremiumGreen, RoundedCornerShape(50))
+                            .background(AccentCyan, RoundedCornerShape(50))
                             .clickable {
                                 if (exoPlayer.isPlaying) {
                                     exoPlayer.pause()
@@ -311,9 +311,9 @@ fun BuiltInPlayerScreen(
                             currentPosition = target
                         },
                         colors = SliderDefaults.colors(
-                            activeTrackColor = PremiumGreen,
+                            activeTrackColor = AccentCyan,
                             inactiveTrackColor = Color.White.copy(alpha = 0.2f),
-                            thumbColor = PremiumGreen
+                            thumbColor = AccentCyan
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -329,7 +329,7 @@ fun BuiltInPlayerScreen(
                     .background(Color.Black.copy(alpha = 0.4f))
             ) {
                 CircularProgressIndicator(
-                    color = PremiumGreen,
+                    color = AccentCyan,
                     strokeWidth = 4.dp,
                     modifier = Modifier
                         .size(56.dp)
