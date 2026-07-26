@@ -1,6 +1,5 @@
 package com.salmanlaghari.risingflix.data
 
-import android.util.Base64
 import com.google.gson.JsonElement
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -10,11 +9,6 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.net.HttpURLConnection
 import java.net.URL
-
-interface ContentSource {
-    val name: String
-    suspend fun fetchContent(): ContentResponse?
-}
 
 class ContentRepository(private val apiService: ApiService) {
 
@@ -90,38 +84,21 @@ class ContentRepository(private val apiService: ApiService) {
         if (!forceRefresh && cachedContentList != null) {
             return@withContext cachedContentList!!
         }
-
-        verifyIntegrity()
-
-        val activeSources = listOf(
-            MovieBoxSource(),
-            StaticGitHubSource(),
-            PremiumOpenStreamSource()
-        )
-
-        val mergedCategories = mutableListOf<Category>()
-        var featured: MovieItem? = null
-
-        for (source in activeSources) {
-            try {
-                val res = source.fetchContent()
-                if (res != null) {
-                    if (featured == null && res.featured != null) {
-                        featured = res.featured
-                    }
-                    res.categories.forEach { cat ->
-                        val existingIndex = mergedCategories.indexOfFirst { it.name.equals(cat.name, ignoreCase = true) }
-                        if (existingIndex != -1) {
-                            val combinedItems = (mergedCategories[existingIndex].items + cat.items).distinctBy { it.id }
-                            mergedCategories[existingIndex] = mergedCategories[existingIndex].copy(items = combinedItems)
-                        } else {
-                            mergedCategories.add(cat)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        try {
+            val scraped = scrapeMovieBoxContent()
+            if (scraped != null && scraped.categories.isNotEmpty()) {
+                cachedContentList = scraped
+                return@withContext scraped
             }
+            // If scraping returns null/empty, fallback to Github static JSON
+            val response = apiService.getContentList()
+            val fallback = mergeMovieBoxContent(response)
+            cachedContentList = fallback
+            fallback
+        } catch (e: Exception) {
+            // If anything fails, fallback to built-in Mock dataset
+            val mergedFallback = mergeMovieBoxContent(getFallbackContentList())
+            cachedContentList ?: mergedFallback
         }
 
         if (mergedCategories.isEmpty()) {
@@ -141,7 +118,8 @@ class ContentRepository(private val apiService: ApiService) {
         }
         try {
             val list = getContentList(forceRefresh)
-            val popularMovie = list.categories.firstOrNull { it.name.contains("Popular Movie", ignoreCase = true) || it.name.contains("Action", ignoreCase = true) || it.name.contains("Trending", ignoreCase = true) }
+            // Dynamically resolve to the "Popular Movie" or "Action Movies" category
+            val popularMovie = list.categories.firstOrNull { it.name.contains("Popular Movie", ignoreCase = true) || it.name.contains("Action", ignoreCase = true) }
             if (popularMovie != null && popularMovie.items.isNotEmpty()) {
                 cachedTrendingMovies = popularMovie.items
                 return@withContext popularMovie.items
@@ -160,6 +138,7 @@ class ContentRepository(private val apiService: ApiService) {
         }
         try {
             val list = getContentList(forceRefresh)
+            // Dynamically resolve to the "Popular Series" or "C-Drama" or "K-Drama" category
             val popularSeries = list.categories.firstOrNull { it.name.contains("Popular Series", ignoreCase = true) || it.name.contains("Drama", ignoreCase = true) }
             if (popularSeries != null && popularSeries.items.isNotEmpty()) {
                 cachedPopularDramas = popularSeries.items
@@ -175,6 +154,7 @@ class ContentRepository(private val apiService: ApiService) {
 
     suspend fun searchMovies(query: String): List<MovieItem> = withContext(Dispatchers.IO) {
         try {
+            // Local search across the cache for extremely fast responsive search experience
             val allCached = (cachedContentList?.categories?.flatMap { it.items } ?: emptyList()) +
                     (cachedTrendingMovies ?: emptyList()) +
                     (cachedPopularDramas ?: emptyList())
@@ -246,15 +226,6 @@ class ContentRepository(private val apiService: ApiService) {
             val matchedItem = allItems.firstOrNull { it.id == id }
 
             if (matchedItem != null) {
-                var videoUrl = matchedItem.videoUrl
-                // Priority 1: Direct Stream Extraction
-                if (videoUrl.contains("moviebox.pk") || videoUrl.contains("moviedetail")) {
-                    val extracted = extractDirectStreamUrl(videoUrl)
-                    if (extracted != null) {
-                        videoUrl = extracted
-                    }
-                }
-
                 val details = VideoDetails(
                     id = matchedItem.id,
                     title = matchedItem.title,
@@ -263,14 +234,13 @@ class ContentRepository(private val apiService: ApiService) {
                     description = matchedItem.safeDescription,
                     rating = matchedItem.safeRating,
                     duration = matchedItem.safeDuration,
-                    videoUrl = videoUrl,
+                    videoUrl = matchedItem.videoUrl,
                     releaseYear = matchedItem.safeReleaseYear,
                     genre = matchedItem.category,
-                    language = matchedItem.safeQuality,
+                    language = matchedItem.safeQuality, // Using quality to display Language/Quality
                     quality = matchedItem.safeQuality,
                     relatedItems = allItems.filter { it.id != matchedItem.id && it.category == matchedItem.category }.take(10)
                 )
-                // Save encrypted/obfuscated record key representation
                 cachedVideoDetails[id] = details
                 return@withContext details
             }
@@ -288,7 +258,7 @@ class ContentRepository(private val apiService: ApiService) {
     private fun scrapeMovieBoxContent(): ContentResponse? {
         try {
             val doc = Jsoup.connect("https://moviebox.pk/?utm_source=mb_app_inner_btmtip")
-                .userAgent(getRandomUserAgent())
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36")
                 .timeout(15000)
                 .get()
 

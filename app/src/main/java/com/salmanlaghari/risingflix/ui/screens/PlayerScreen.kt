@@ -150,70 +150,11 @@ fun PlayerScreen(
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
                                 mediaPlaybackRequiresUserGesture = false
-                                userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                                userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
                                 useWideViewPort = true
                                 loadWithOverviewMode = true
                             }
-                            webViewClient = object : android.webkit.WebViewClient() {
-                                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
-                                    val url = request?.url?.toString() ?: return false
-                                    if (url.contains("moviebox.pk") || url.contains("aoneroom.com") || url.contains("javascript:")) {
-                                        return false
-                                    }
-                                    return true
-                                }
-
-                                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
-                                    if (url == null) return false
-                                    if (url.contains("moviebox.pk") || url.contains("aoneroom.com") || url.contains("javascript:")) {
-                                        return false
-                                    }
-                                    return true
-                                }
-
-                                override fun onPageStarted(view: android.webkit.WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                                    super.onPageStarted(view, url, favicon)
-                                    injectCleanStyles(view)
-                                }
-
-                                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    injectCleanStyles(view)
-                                }
-
-                                private fun injectCleanStyles(view: android.webkit.WebView?) {
-                                    val css = """
-                                        header, footer, .footer, .header, .download-banner, .ad-box, .ads, .promo,
-                                        #downloadApp, .downloadApp, [href*="downloadApp"], .download-btn,
-                                        .nav-panel, .navPannel, .h5Footer, .MemberUserSheet, .AdsCard, .ThirdPartyAd,
-                                        .download, .app-download, .ad-card, .banner-ad, iframe[src*="doubleclick"],
-                                        div[class*="ad"], div[id*="ad"] {
-                                            display: none !important;
-                                            visibility: hidden !important;
-                                            opacity: 0 !important;
-                                            height: 0 !important;
-                                            pointer-events: none !important;
-                                        }
-                                        body, html {
-                                            margin: 0 !important;
-                                            padding: 0 !important;
-                                            overflow: hidden !important;
-                                            background-color: #0B0E14 !important;
-                                        }
-                                        .video-container, .player-container, video {
-                                            position: fixed !important;
-                                            top: 0 !important;
-                                            left: 0 !important;
-                                            width: 100vw !important;
-                                            height: 100vh !important;
-                                            z-index: 999999 !important;
-                                            background: #000000 !important;
-                                        }
-                                    """.trimIndent().replace("\n", " ")
-                                    val js = "var style = document.createElement('style'); style.innerHTML = '$css'; document.head.appendChild(style);"
-                                    view?.evaluateJavascript(js, null)
-                                }
-                            }
+                            webViewClient = android.webkit.WebViewClient()
                             webChromeClient = android.webkit.WebChromeClient()
                             loadUrl(videoDetails.videoUrl)
                         }
