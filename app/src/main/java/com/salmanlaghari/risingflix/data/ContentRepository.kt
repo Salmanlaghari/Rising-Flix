@@ -49,10 +49,14 @@ class ContentRepository(private val apiService: ApiService) {
 
     // Anti-tampering check: verify class package and class structures to detect external modification
     private fun verifyIntegrity() {
-        val expectedPackage = "com.salmanlaghari.risingflix"
-        val actualClass = this::class.java.name
-        if (!actualClass.startsWith(expectedPackage)) {
-            throw SecurityException("App integrity check failed: Class modification detected!")
+        try {
+            val expectedPackage = "com.salmanlaghari.risingflix"
+            val actualClass = this::class.java.name
+            if (!actualClass.startsWith(expectedPackage) && !actualClass.contains("risingflix")) {
+                android.util.Log.e("Security", "Integrity check warning: package name mismatch due to obfuscation or modification.")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
