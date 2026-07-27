@@ -1,0 +1,162 @@
+[
+  {
+    "category": "Movies",
+    "title": "The Odyssey",
+    "poster_image_url": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600",
+    "description": "An epic journey of Odysseus back home after the Trojan War.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Movies",
+    "title": "Oppenheimer",
+    "poster_image_url": "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=600",
+    "description": "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Movies",
+    "title": "Barbie",
+    "poster_image_url": "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=600",
+    "description": "Barbie suffers a crisis that leads her to question her world and her existence.",
+    "streaming_url": "https://www.w3schools.com/html/movie.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Movies",
+    "title": "John Wick 4",
+    "poster_image_url": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=600",
+    "description": "John Wick uncovers a path to defeating The High Table.",
+    "streaming_url": "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Movies",
+    "title": "Spider-Man",
+    "poster_image_url": "https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=600",
+    "description": "A high school student gains spider-like abilities and battles crime.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Dramas",
+    "title": "Breaking Bad",
+    "poster_image_url": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600",
+    "description": "A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Dramas",
+    "title": "Game of Thrones",
+    "poster_image_url": "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=600",
+    "description": "Nine noble families fight for control over the lands of Westeros.",
+    "streaming_url": "https://www.w3schools.com/html/movie.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Dramas",
+    "title": "Stranger Things",
+    "poster_image_url": "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600",
+    "description": "When a young boy vanishes, a town uncovers a mystery involving secret experiments and terrifying supernatural forces.",
+    "streaming_url": "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Dramas",
+    "title": "The Last of Us",
+    "poster_image_url": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=600",
+    "description": "After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl who may be humanity's last hope.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Dramas",
+    "title": "Wednesday",
+    "poster_image_url": "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600",
+    "description": "Wednesday Addams attempts to master her emerging psychic ability and solve the supernatural mystery that embroiled her parents.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Sports",
+    "title": "WWE SmackDown",
+    "poster_image_url": "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600",
+    "description": "The superstars of World Wrestling Entertainment battle it out in high-flying, adrenaline-pumping matches.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Sports",
+    "title": "UFC Fight Night",
+    "poster_image_url": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600",
+    "description": "World-class mixed martial artists step into the Octagon for intense, action-packed bouts.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Sports",
+    "title": "Premier League Highlights",
+    "poster_image_url": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600",
+    "description": "Catch all the key goals, dramatic moments, and spectacular plays from the world's most prestigious football league.",
+    "streaming_url": "https://www.w3schools.com/html/movie.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Sports",
+    "title": "NBA Finals",
+    "poster_image_url": "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=600",
+    "description": "The best basketball teams compete on the grandest stage for the ultimate championship title.",
+    "streaming_url": "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Sports",
+    "title": "Formula 1 Highlights",
+    "poster_image_url": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600",
+    "description": "Witness the thrilling high-speed races, overtakes, and strategy calls from around the world of F1.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Cartoons",
+    "title": "Dragon Ball Z",
+    "poster_image_url": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600",
+    "description": "Goku and his friends defend the Earth from powerful alien threats and villains in epic battles.",
+    "streaming_url": "https://www.w3schools.com/html/movie.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Cartoons",
+    "title": "Naruto Shippuden",
+    "poster_image_url": "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600",
+    "description": "Naruto returns after intensive training, striving to protect his village and rescue his friend.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Cartoons",
+    "title": "One Piece",
+    "poster_image_url": "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600",
+    "description": "Luffy and his pirate crew sail the oceans in search of the legendary ultimate treasure.",
+    "streaming_url": "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+    "quality": "4K"
+  },
+  {
+    "category": "Cartoons",
+    "title": "SpongeBob SquarePants",
+    "poster_image_url": "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=600",
+    "description": "The hilarious undersea adventures of a optimistic, lovable sea sponge and his aquatic friends.",
+    "streaming_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "quality": "HD"
+  },
+  {
+    "category": "Cartoons",
+    "title": "Tom and Jerry",
+    "poster_image_url": "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=600",
+    "description": "The classic, iconic cat-and-mouse chase filled with endless comedy and clever antics.",
+    "streaming_url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+    "quality": "HD"
+  }
+]
