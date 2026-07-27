@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "com.salmanlaghari.risingflix"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.salmanlaghari.risingflix"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 10000
         versionName = "1.0.0"
 
@@ -24,13 +24,34 @@ android {
     // Load keystore.properties for signed release setup
     val keystorePropertiesFile = rootProject.file("keystore.properties")
     val keystoreProperties = Properties()
+    var isSigningConfigured = false
     if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+        try {
+            keystorePropertiesFile.inputStream().use { input ->
+                keystoreProperties.load(input)
+            }
+            val storeFilePath = keystoreProperties.getProperty("storeFile")
+            val storePasswordProp = keystoreProperties.getProperty("storePassword")
+            val keyAliasProp = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordProp = keystoreProperties.getProperty("keyPassword")
+
+            if (!storeFilePath.isNullOrEmpty() &&
+                !storePasswordProp.isNullOrEmpty() &&
+                !keyAliasProp.isNullOrEmpty() &&
+                !keyPasswordProp.isNullOrEmpty()) {
+                val keystoreFile = rootProject.file(storeFilePath)
+                if (keystoreFile.exists() && keystoreFile.isFile && keystoreFile.length() > 0) {
+                    isSigningConfigured = true
+                }
+            }
+        } catch (e: Exception) {
+            isSigningConfigured = false
+        }
     }
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
+            if (isSigningConfigured) {
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
@@ -47,8 +68,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (keystorePropertiesFile.exists()) {
+            if (isSigningConfigured) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
         debug {
