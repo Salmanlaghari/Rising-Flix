@@ -139,28 +139,73 @@ fun PlayerScreen(
                 }
         ) {
             if (isWebViewMode) {
-                AndroidView(
-                    factory = { ctx ->
-                        android.webkit.WebView(ctx).apply {
-                            layoutParams = android.view.ViewGroup.LayoutParams(
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                var webViewLoadError by remember { mutableStateOf(false) }
+
+                if (webViewLoadError) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                "WebView could not be initialized on your device",
+                                color = TextMain,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                            settings.apply {
-                                javaScriptEnabled = true
-                                domStorageEnabled = true
-                                mediaPlaybackRequiresUserGesture = false
-                                userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
-                                useWideViewPort = true
-                                loadWithOverviewMode = true
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(videoDetails.videoUrl)
+                                        )
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Cannot open browser", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
+                            ) {
+                                Text("Open in Browser")
                             }
-                            webViewClient = android.webkit.WebViewClient()
-                            webChromeClient = android.webkit.WebChromeClient()
-                            loadUrl(videoDetails.videoUrl)
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                    }
+                } else {
+                    AndroidView(
+                        factory = { ctx ->
+                            try {
+                                android.webkit.WebView(ctx).apply {
+                                    layoutParams = android.view.ViewGroup.LayoutParams(
+                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                                    settings.apply {
+                                        javaScriptEnabled = true
+                                        domStorageEnabled = true
+                                        mediaPlaybackRequiresUserGesture = false
+                                        userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
+                                        useWideViewPort = true
+                                        loadWithOverviewMode = true
+                                    }
+                                    webViewClient = android.webkit.WebViewClient()
+                                    webChromeClient = android.webkit.WebChromeClient()
+                                    loadUrl(videoDetails.videoUrl)
+                                }
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                                webViewLoadError = true
+                                android.view.View(ctx) // Return a safe blank dummy view
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 // Render floating back button over WebView
                 Box(
