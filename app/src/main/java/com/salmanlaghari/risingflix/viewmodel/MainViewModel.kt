@@ -38,14 +38,7 @@ class MainViewModel : ViewModel() {
     val exploreCategoryFilter: StateFlow<String?> = _exploreCategoryFilter.asStateFlow()
 
     init {
-        // Delay content fetch to avoid race conditions
-        viewModelScope.launch {
-            try {
-                fetchContent()
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error("Failed to initialize. Please restart the app.")
-            }
-        }
+        fetchContent()
     }
 
     fun fetchContent() {
@@ -53,16 +46,9 @@ class MainViewModel : ViewModel() {
             _uiState.value = UiState.Loading
             try {
                 val response = repository.getContentList(forceRefresh = true)
-                // Ensure we always have valid data
-                if (response.categories.isEmpty() && response.featured == null) {
-                    // If no content, show error with helpful message
-                    _uiState.value = UiState.Error("No content available. Please check your internet connection.")
-                } else {
-                    _uiState.value = UiState.Success(response)
-                }
+                _uiState.value = UiState.Success(response)
             } catch (e: Exception) {
-                // Never crash - always show error state
-                _uiState.value = UiState.Error(e.localizedMessage ?: "Failed to load content. Please try again.")
+                _uiState.value = UiState.Error(e.localizedMessage ?: "Unknown Error")
             }
         }
     }
@@ -70,23 +56,18 @@ class MainViewModel : ViewModel() {
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
         viewModelScope.launch {
-            try {
-                if (query.isBlank()) {
-                    val response = repository.getContentList()
-                    _uiState.value = UiState.Success(response)
-                } else {
-                    val results = repository.searchMovies(query)
-                    // Map results to matching Category representation
-                    _uiState.value = UiState.Success(
-                        ContentResponse(
-                            featured = null,
-                            categories = listOf(Category(id = "search_results", name = "Search Results", icon = "search", items = results))
-                        )
+            if (query.isBlank()) {
+                val response = repository.getContentList()
+                _uiState.value = UiState.Success(response)
+            } else {
+                val results = repository.searchMovies(query)
+                // Map results to matching Category representation
+                _uiState.value = UiState.Success(
+                    ContentResponse(
+                        featured = null,
+                        categories = listOf(Category(id = "search_results", name = "Search Results", icon = "search", items = results))
                     )
-                }
-            } catch (e: Exception) {
-                // Never crash - show error state
-                _uiState.value = UiState.Error("Search failed. Please try again.")
+                )
             }
         }
     }
@@ -104,7 +85,7 @@ class MainViewModel : ViewModel() {
                     val response = repository.getContentList()
                     _uiState.value = UiState.Success(response)
                 } catch (e: Exception) {
-                    // Fallback to prevent crash - create basic details from video info
+                    // Fallback to prevent crash
                     val basicDetails = VideoDetails(
                         id = video.id,
                         title = video.title,
@@ -120,14 +101,8 @@ class MainViewModel : ViewModel() {
                         quality = video.safeQuality
                     )
                     _selectedVideoDetails.value = basicDetails
-                    // Restore success state
-                    try {
-                        val response = repository.getContentList()
-                        _uiState.value = UiState.Success(response)
-                    } catch (e2: Exception) {
-                        // If we can't get content list, at least show the video details
-                        _uiState.value = UiState.Error("Content loaded with limited info.")
-                    }
+                    val response = repository.getContentList()
+                    _uiState.value = UiState.Success(response)
                 }
             }
         }
