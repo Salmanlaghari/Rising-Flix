@@ -1,5 +1,6 @@
 package com.salmanlaghari.risingflix.data
 
+import android.util.Base64
 import com.google.gson.JsonElement
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -9,6 +10,11 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.net.HttpURLConnection
 import java.net.URL
+
+interface ContentSource {
+    val name: String
+    suspend fun fetchContent(): ContentResponse?
+}
 
 class ContentRepository(private val apiService: ApiService) {
 
@@ -43,10 +49,14 @@ class ContentRepository(private val apiService: ApiService) {
 
     // Anti-tampering check: verify class package and class structures to detect external modification
     private fun verifyIntegrity() {
-        val expectedPackage = "com.salmanlaghari.risingflix"
-        val actualClass = this::class.java.name
-        if (!actualClass.startsWith(expectedPackage)) {
-            throw SecurityException("App integrity check failed: Class modification detected!")
+        try {
+            val expectedPackage = "com.salmanlaghari.risingflix"
+            val actualClass = this::class.java.name
+            if (!actualClass.startsWith(expectedPackage) && !actualClass.contains("risingflix")) {
+                android.util.Log.e("Security", "Integrity check warning: package name mismatch due to obfuscation or modification.")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -84,22 +94,28 @@ class ContentRepository(private val apiService: ApiService) {
         if (!forceRefresh && cachedContentList != null) {
             return@withContext cachedContentList!!
         }
-        try {
+
+        val mergedCategories = mutableListOf<Category>()
+        var featured: MovieItem? = null
+
+        val responseResult = try {
             val scraped = scrapeMovieBoxContent()
             if (scraped != null && scraped.categories.isNotEmpty()) {
                 cachedContentList = scraped
-                return@withContext scraped
+                scraped
+            } else {
+                val response = apiService.getContentList()
+                val merged = mergeMovieBoxContent(response)
+                cachedContentList = merged
+                merged
             }
-            // If scraping returns null/empty, fallback to Github static JSON
-            val response = apiService.getContentList()
-            val merged = mergeMovieBoxContent(response)
-            cachedContentList = merged
-            merged
         } catch (e: Exception) {
-            // If cache exists, fall back to it
             val mergedFallback = mergeMovieBoxContent(getFallbackContentList())
             cachedContentList ?: mergedFallback
         }
+
+        featured = responseResult?.featured
+        responseResult?.categories?.let { mergedCategories.addAll(it) }
 
         if (mergedCategories.isEmpty()) {
             val fallback = mergeMovieBoxContent(getFallbackContentList())
@@ -183,6 +199,12 @@ class ContentRepository(private val apiService: ApiService) {
 
     // Jsoup direct playable stream extractor from hydration NUXT_DATA block
     private fun extractDirectStreamUrl(detailUrl: String): String? {
+        val extracted = extractAllStreamLinks(detailUrl)
+        return extracted.firstOrNull()
+    }
+
+    fun extractAllStreamLinks(detailUrl: String): List<String> {
+        val urls = mutableListOf<String>()
         try {
             val doc = Jsoup.connect(detailUrl)
                 .userAgent(getRandomUserAgent())
@@ -197,22 +219,38 @@ class ContentRepository(private val apiService: ApiService) {
 
             if (nuxtScriptContent != null) {
                 val jsonArray = JsonParser.parseString(nuxtScriptContent).asJsonArray
+
+                val directMp4s = mutableListOf<String>()
+                val backupUgcStreams = mutableListOf<String>()
+                val youtubeUrls = mutableListOf<String>()
+
                 for (i in 0 until jsonArray.size()) {
                     val element = jsonArray[i]
-                    if (element != null && element.isJsonPrimitive) {
+                    if (element != null && element.isJsonPrimitive && element.asJsonPrimitive.isString) {
                         val str = element.asString
-                        if (str.startsWith("http") && (str.endsWith(".mp4") || str.endsWith(".m3u8") || str.contains(".mp4?") || str.contains(".m3u8?") || (str.contains("/media/") && !str.endsWith(".jpg") && !str.endsWith(".jpeg") && !str.endsWith(".png") && !str.endsWith(".webp")))) {
-                            // Encrypt and decrypt cache payload on-the-fly to secure processed values
-                            val obfuscated = obfuscate(str)
-                            return deobfuscate(obfuscated)
+                        if (str.startsWith("http")) {
+                            if (str.contains(".mp4") || str.contains(".m3u8") || str.contains("/resource/")) {
+                                if (!str.endsWith(".jpg") && !str.endsWith(".jpeg") && !str.endsWith(".png") && !str.endsWith(".webp")) {
+                                    directMp4s.add(str)
+                                }
+                            } else if (str.contains("ugc-sport.com") || str.contains("/Youtube/")) {
+                                backupUgcStreams.add(str)
+                            } else if (str.contains("youtube.com/watch") || str.contains("youtu.be/")) {
+                                youtubeUrls.add(str)
+                            }
                         }
                     }
                 }
+
+                // Prioritize: Direct MP4s first, then UGC streams, then YouTube
+                urls.addAll(directMp4s.distinct())
+                urls.addAll(backupUgcStreams.distinct())
+                urls.addAll(youtubeUrls.distinct())
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return null
+        return urls
     }
 
     suspend fun getVideoDetails(id: String, forceRefresh: Boolean = false): VideoDetails = withContext(Dispatchers.IO) {
@@ -226,6 +264,14 @@ class ContentRepository(private val apiService: ApiService) {
             val matchedItem = allItems.firstOrNull { it.id == id }
 
             if (matchedItem != null) {
+                var finalUrl = matchedItem.videoUrl
+                if (finalUrl.contains("moviebox.pk") || finalUrl.contains("moviedetail")) {
+                    val extracted = extractAllStreamLinks(finalUrl)
+                    if (extracted.isNotEmpty()) {
+                        finalUrl = extracted.joinToString("|")
+                    }
+                }
+
                 val details = VideoDetails(
                     id = matchedItem.id,
                     title = matchedItem.title,
@@ -234,7 +280,7 @@ class ContentRepository(private val apiService: ApiService) {
                     description = matchedItem.safeDescription,
                     rating = matchedItem.safeRating,
                     duration = matchedItem.safeDuration,
-                    videoUrl = matchedItem.videoUrl,
+                    videoUrl = finalUrl,
                     releaseYear = matchedItem.safeReleaseYear,
                     genre = matchedItem.category,
                     language = matchedItem.safeQuality, // Using quality to display Language/Quality
@@ -885,6 +931,234 @@ class ContentRepository(private val apiService: ApiService) {
             language = "English / Urdu / Punjabi",
             quality = matchedItem.safeQuality,
             relatedItems = allItems.filter { it.id != matchedItem.id }.take(5)
+        )
+    }
+
+    private fun scrapeMovieBoxContent(): ContentResponse? {
+        try {
+            val doc = Jsoup.connect("https://moviebox.pk/?utm_source=mb_app_inner_btmtip")
+                .userAgent(getRandomUserAgent())
+                .timeout(15000)
+                .get()
+
+            val nuxtScript = doc.selectFirst("script[id=__NUXT_DATA__]")
+            val nuxtScriptContent = nuxtScript?.html()
+
+            if (nuxtScriptContent != null && nuxtScriptContent.contains("ShallowReactive")) {
+                val jsonArray = JsonParser.parseString(nuxtScriptContent).asJsonArray
+                val categoriesList = mutableListOf<Category>()
+
+                for (i in 0 until jsonArray.size()) {
+                    val element = jsonArray[i]
+                    if (element != null && element.isJsonObject) {
+                        val obj = element.asJsonObject
+                        if (obj.has("type") && obj.has("title") && obj.has("subjects")) {
+                            val typeStr = resolveStr(obj.get("type"), jsonArray)
+                            val titleStr = resolveStr(obj.get("title"), jsonArray)
+
+                            if (typeStr.contains("SUBJECTS")) {
+                                val subjectsRef = obj.get("subjects")
+                                val subjectsList = if (subjectsRef != null && subjectsRef.isJsonPrimitive && subjectsRef.asJsonPrimitive.isNumber) {
+                                    val listIdx = subjectsRef.asInt
+                                    if (listIdx >= 0 && listIdx < jsonArray.size()) {
+                                        jsonArray[listIdx].asJsonArray
+                                    } else null
+                                } else null
+
+                                if (subjectsList != null) {
+                                    val itemsList = mutableListOf<MovieItem>()
+                                    for (j in 0 until subjectsList.size()) {
+                                        val sRef = subjectsList[j].asInt
+                                        if (sRef >= 0 && sRef < jsonArray.size()) {
+                                            val sItem = jsonArray[sRef]
+                                            if (sItem != null && sItem.isJsonObject) {
+                                                val sObj = sItem.asJsonObject
+                                                val sId = resolveStr(sObj.get("subjectId"), jsonArray)
+                                                val sTitle = resolveStr(sObj.get("title"), jsonArray)
+                                                val sDetail = resolveStr(sObj.get("detailPath"), jsonArray)
+                                                val sDesc = resolveStr(sObj.get("description"), jsonArray)
+                                                val sGenre = resolveStr(sObj.get("genre"), jsonArray)
+                                                val sRating = resolveStr(sObj.get("imdbRatingValue"), jsonArray)
+                                                val sDate = resolveStr(sObj.get("releaseDate"), jsonArray)
+                                                val sYear = if (sDate.length >= 4) sDate.substring(0, 4) else "2026"
+                                                val sCorner = resolveStr(sObj.get("corner"), jsonArray)
+
+                                                var sCover = ""
+                                                if (sObj.has("cover")) {
+                                                    val coverRef = sObj.get("cover")
+                                                    val coverObj = if (coverRef.isJsonPrimitive && coverRef.asJsonPrimitive.isNumber) {
+                                                        val cIdx = coverRef.asInt
+                                                        if (cIdx >= 0 && cIdx < jsonArray.size()) jsonArray[cIdx].asJsonObject else null
+                                                    } else if (coverRef.isJsonObject) {
+                                                        coverRef.asJsonObject
+                                                    } else null
+
+                                                    if (coverObj != null && coverObj.has("url")) {
+                                                        sCover = resolveStr(coverObj.get("url"), jsonArray)
+                                                    }
+                                                }
+
+                                                val detailUrl = "https://moviebox.pk/moviedetail/$sDetail"
+                                                val item = MovieItem(
+                                                    id = sId,
+                                                    title = sTitle,
+                                                    poster = sCover,
+                                                    backdrop = sCover,
+                                                    description = sDesc,
+                                                    rating = if (sRating.isNotEmpty()) sRating else "9.0",
+                                                    duration = "120 min",
+                                                    videoUrl = detailUrl,
+                                                    category = titleStr,
+                                                    year = sYear,
+                                                    quality = if (sCorner.isNotEmpty()) sCorner else "HD"
+                                                )
+                                                itemsList.add(item)
+                                            }
+                                        }
+                                    }
+
+                                    if (itemsList.isNotEmpty()) {
+                                        val catId = "cat_${titleStr.lowercase().replace(" ", "_")}"
+                                        val categoryObj = Category(
+                                            id = catId,
+                                            name = titleStr,
+                                            icon = getCategoryIcon(titleStr),
+                                            items = itemsList
+                                        )
+                                        categoriesList.add(categoryObj)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (categoriesList.isNotEmpty()) {
+                    val featuredItem = categoriesList.firstOrNull()?.items?.firstOrNull()
+                    return ContentResponse(
+                        featured = featuredItem,
+                        categories = categoriesList
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    private fun resolveStr(element: JsonElement?, jsonArray: JsonArray): String {
+        if (element == null) return ""
+        if (element.isJsonPrimitive) {
+            val prim = element.asJsonPrimitive
+            if (prim.isNumber) {
+                val idx = prim.asInt
+                if (idx >= 0 && idx < jsonArray.size()) {
+                    val ref = jsonArray[idx]
+                    if (ref.isJsonPrimitive && ref.asJsonPrimitive.isString) {
+                        return ref.asJsonPrimitive.asString
+                    }
+                    return ref.toString()
+                }
+            } else if (prim.isString) {
+                return prim.asString
+            }
+        }
+        return element.toString()
+    }
+
+    private fun getCategoryIcon(name: String): String {
+        return when {
+            name.contains("series", true) -> "movie"
+            name.contains("movie", true) -> "movie"
+            name.contains("drama", true) -> "face"
+            name.contains("sports", true) -> "sports_soccer"
+            name.contains("cartoon", true) -> "toys"
+            else -> "star"
+        }
+    }
+
+    private fun getPremiumOpenStreamContent(): ContentResponse {
+        val featured = MovieItem(
+            id = "premium_feat_01",
+            title = "Blender's Sintel Chronicles",
+            poster = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600",
+            backdrop = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200",
+            description = "Sintel is an independent film by the Blender Foundation. Follow her incredible journey to save her dragon.",
+            rating = "9.6",
+            duration = "15 min",
+            videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+            category = "Hollywood",
+            year = "2026",
+            quality = "8K"
+        )
+
+        val hollywood = Category(
+            id = "cat_hollywood_premium",
+            name = "Hollywood",
+            icon = "movie",
+            items = listOf(
+                MovieItem(
+                    id = "premium_hw_01",
+                    title = "Tears of Steel: Sci-Fi Recon",
+                    poster = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=600",
+                    backdrop = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1200",
+                    description = "A classic sci-fi adventure demonstrating cutting edge CGI. Exploring deep quantum memory and robotic enhancements.",
+                    rating = "9.4",
+                    duration = "12 min",
+                    videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                    category = "Hollywood",
+                    year = "2025",
+                    quality = "4K"
+                )
+            )
+        )
+
+        val cartoons = Category(
+            id = "cat_cartoons_premium",
+            name = "Cartoons",
+            icon = "toys",
+            items = listOf(
+                MovieItem(
+                    id = "premium_cart_01",
+                    title = "Big Buck Bunny Classic",
+                    poster = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600",
+                    backdrop = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1200",
+                    description = "A large and lovable rabbit teaches three mischievous forest rodents a classic lesson in manners.",
+                    rating = "9.2",
+                    duration = "10 min",
+                    videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                    category = "Cartoons",
+                    year = "2024",
+                    quality = "HD+"
+                )
+            )
+        )
+
+        val sports = Category(
+            id = "cat_sports_premium",
+            name = "Sports",
+            icon = "sports_soccer",
+            items = listOf(
+                MovieItem(
+                    id = "premium_sports_01",
+                    title = "Extreme Jellyfish Sea Probe",
+                    poster = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600",
+                    backdrop = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1200",
+                    description = "Witness the magnificent deep-sea creatures and jellyfish captured in ultra high definition video.",
+                    rating = "9.5",
+                    duration = "10 min",
+                    videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                    category = "Sports",
+                    year = "2026",
+                    quality = "8K"
+                )
+            )
+        )
+
+        return ContentResponse(
+            featured = featured,
+            categories = listOf(hollywood, cartoons, sports)
         )
     }
 }

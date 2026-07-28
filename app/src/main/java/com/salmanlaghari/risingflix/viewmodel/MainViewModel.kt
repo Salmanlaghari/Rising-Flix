@@ -34,6 +34,9 @@ class MainViewModel : ViewModel() {
     private val _currentNavSection = MutableStateFlow(0) // 0: Home, 1: Explore, 2: Library, 3: Profile
     val currentNavSection: StateFlow<Int> = _currentNavSection.asStateFlow()
 
+    private val _exploreCategoryFilter = MutableStateFlow<String?>(null)
+    val exploreCategoryFilter: StateFlow<String?> = _exploreCategoryFilter.asStateFlow()
+
     init {
         fetchContent()
     }
@@ -75,16 +78,41 @@ class MainViewModel : ViewModel() {
                 _selectedVideoDetails.value = null
             } else {
                 _uiState.value = UiState.Loading
-                val details = repository.getVideoDetails(video.id)
-                _selectedVideoDetails.value = details
-                // Restore success state
-                val response = repository.getContentList()
-                _uiState.value = UiState.Success(response)
+                try {
+                    val details = repository.getVideoDetails(video.id)
+                    _selectedVideoDetails.value = details
+                    // Restore success state
+                    val response = repository.getContentList()
+                    _uiState.value = UiState.Success(response)
+                } catch (e: Exception) {
+                    // Fallback to prevent crash
+                    val basicDetails = VideoDetails(
+                        id = video.id,
+                        title = video.title,
+                        poster = video.safePoster,
+                        backdrop = video.safeBackdrop,
+                        description = video.safeDescription,
+                        rating = video.safeRating,
+                        duration = video.safeDuration,
+                        videoUrl = video.videoUrl,
+                        releaseYear = video.safeReleaseYear,
+                        genre = video.category,
+                        language = "English",
+                        quality = video.safeQuality
+                    )
+                    _selectedVideoDetails.value = basicDetails
+                    val response = repository.getContentList()
+                    _uiState.value = UiState.Success(response)
+                }
             }
         }
     }
 
     fun setNavSection(section: Int) {
         _currentNavSection.value = section
+    }
+
+    fun setExploreCategory(categoryName: String) {
+        _exploreCategoryFilter.value = categoryName
     }
 }
