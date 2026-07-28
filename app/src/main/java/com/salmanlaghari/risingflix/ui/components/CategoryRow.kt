@@ -1,24 +1,30 @@
 package com.salmanlaghari.risingflix.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.salmanlaghari.risingflix.data.Category
 import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.ui.theme.AccentCyan
+import com.salmanlaghari.risingflix.ui.theme.CardSurfaceDark
 import com.salmanlaghari.risingflix.ui.theme.TextMain
 
 @Composable
 fun CategoryRow(
     category: Category,
     onVideoClick: (MovieItem) -> Unit,
+    onSeeAllClick: (Category) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (category.items.isEmpty()) return
@@ -60,11 +66,18 @@ fun CategoryRow(
                     fontWeight = FontWeight.ExtraBold
                 )
             }
+
+            // "See All" Button with Click Action
             Text(
                 text = "See All →",
                 color = AccentCyan,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CardSurfaceDark)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clickable { onSeeAllClick(category) }
             )
         }
 
