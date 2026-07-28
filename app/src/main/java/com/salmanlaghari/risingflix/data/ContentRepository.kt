@@ -24,12 +24,18 @@ class ContentRepository(private val apiService: ApiService) {
         private const val PROXY_SERVER_URL = "http://10.0.2.2:8080"
         
         // Singleton proxy API instance (lazy initialized)
-        private val proxyApi: ApiService by lazy {
-            Retrofit.Builder()
-                .baseUrl(PROXY_SERVER_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(ApiService::class.java)
+        // Only created when actually needed
+        private var _proxyApi: ApiService? = null
+        
+        private fun getProxyApi(): ApiService {
+            if (_proxyApi == null) {
+                _proxyApi = Retrofit.Builder()
+                    .baseUrl(PROXY_SERVER_URL)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+                    .create(ApiService::class.java)
+            }
+            return _proxyApi!!
         }
     }
     
@@ -54,7 +60,7 @@ class ContentRepository(private val apiService: ApiService) {
             // If legacy fails, try proxy server
             if (useProxyServer) {
                 try {
-                    proxyApi.getContentList()
+                    getProxyApi().getContentList()
                 } catch (e2: Exception) {
                     // Both failed, return empty
                     ContentResponse(
@@ -85,11 +91,11 @@ class ContentRepository(private val apiService: ApiService) {
             // If legacy fails, try proxy server
             if (useProxyServer) {
                 try {
-                    val details = proxyApi.getVideoDetails(id)
+                    val details = getProxyApi().getVideoDetails(id)
                     
                     // Get the proxied video URL (no MovieBox branding!)
                     val videoUrlResponse = try {
-                        proxyApi.getVideoUrl(id)
+                        getProxyApi().getVideoUrl(id)
                     } catch (e2: Exception) {
                         null
                     }
@@ -124,7 +130,7 @@ class ContentRepository(private val apiService: ApiService) {
             // If legacy fails, try proxy server
             if (useProxyServer) {
                 try {
-                    val response = proxyApi.searchMovies(query)
+                    val response = getProxyApi().searchMovies(query)
                     response.results
                 } catch (e2: Exception) {
                     emptyList()
@@ -148,7 +154,7 @@ class ContentRepository(private val apiService: ApiService) {
             // If legacy fails, try proxy server
             if (useProxyServer) {
                 try {
-                    proxyApi.getTrendingMovies()
+                    getProxyApi().getTrendingMovies()
                 } catch (e2: Exception) {
                     emptyList()
                 }
@@ -167,7 +173,7 @@ class ContentRepository(private val apiService: ApiService) {
         if (!useProxyServer) return null
         
         return try {
-            val response = proxyApi.getVideoUrl(contentId)
+            val response = getProxyApi().getVideoUrl(contentId)
             response.videoUrl
         } catch (e: Exception) {
             null
@@ -190,7 +196,7 @@ class ContentRepository(private val apiService: ApiService) {
         if (!useProxyServer) return false
         
         return try {
-            proxyApi.getContentList()
+            getProxyApi().getContentList()
             true
         } catch (e: Exception) {
             false
