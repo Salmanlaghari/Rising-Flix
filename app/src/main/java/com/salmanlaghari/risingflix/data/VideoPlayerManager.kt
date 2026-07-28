@@ -45,13 +45,14 @@ object VideoPlayerManager {
         // Check if we are resuming the same video, if so, restore playback position
         if (videoId == lastPlayedMediaId) {
             player.setMediaItem(mediaItem, lastPlaybackPosition)
+            player.playWhenReady = lastPlayWhenReady
         } else {
             player.setMediaItem(mediaItem)
             lastPlaybackPosition = 0L
+            player.playWhenReady = true
         }
 
         player.prepare()
-        player.playWhenReady = lastPlayWhenReady
         lastPlayedMediaId = videoId
     }
 
