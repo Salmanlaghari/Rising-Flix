@@ -83,6 +83,16 @@ fun PlayerScreen(
     var selectedQuality by remember { mutableStateOf(videoDetails.quality) }
     var showQualityDialog by remember { mutableStateOf(false) }
     var isSubtitlesEnabled by remember { mutableStateOf(false) }
+    
+    // Server/Link states
+    var showServerDialog by remember { mutableStateOf(false) }
+    var selectedServer by remember { mutableStateOf(0) }
+    val serverLinks = listOf(
+        videoDetails.videoUrl,
+        videoDetails.videoUrl.replace("archive.org", "sample-videos.com").replace("BigBuckBunny_512kb.mp4", "video321/mp4/720/big_buck_bunny_720p_1mb.mp4"),
+        videoDetails.videoUrl.replace("archive.org", "www.learningcontainer.com").replace("BigBuckBunny_512kb.mp4", "wp-content/uploads/2020/05/sample-mp4-file.mp4")
+    )
+    val serverNames = listOf("Server 1", "Server 2", "Server 3")
 
     // Download States
     var showDownloadDialog by remember { mutableStateOf(false) }
@@ -282,6 +292,13 @@ fun PlayerScreen(
                                     Icon(
                                         imageVector = Icons.Default.Tune,
                                         contentDescription = "Quality",
+                                        tint = TextMain
+                                    )
+                                }
+                                IconButton(onClick = { showServerDialog = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Link,
+                                        contentDescription = "Server",
                                         tint = TextMain
                                     )
                                 }
@@ -548,6 +565,48 @@ fun PlayerScreen(
                 }
             }
         }
+    }
+
+    // Server/Link Selector dialog
+    if (showServerDialog) {
+        AlertDialog(
+            onDismissRequest = { showServerDialog = false },
+            title = { Text(text = "Select Server", color = TextMain) },
+            containerColor = CardSurfaceDark,
+            confirmButton = {
+                TextButton(onClick = { showServerDialog = false }) {
+                    Text(text = "Cancel", color = AccentCyan)
+                }
+            },
+            text = {
+                Column {
+                    serverNames.forEachIndexed { index, serverName ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedServer = index
+                                    showServerDialog = false
+                                    // Switch to selected server
+                                    VideoPlayerManager.playVideo(context, videoDetails.id, serverLinks[index], videoDetails.subtitlesUrl)
+                                }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = serverName, color = TextMain)
+                            if (selectedServer == index) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = AccentCyan
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
 
     // Playback Quality Selector dialog
