@@ -38,7 +38,14 @@ class MainViewModel : ViewModel() {
     val exploreCategoryFilter: StateFlow<String?> = _exploreCategoryFilter.asStateFlow()
 
     init {
-        fetchContent()
+        // Delay content fetch to avoid race conditions
+        viewModelScope.launch {
+            try {
+                fetchContent()
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Failed to initialize. Please restart the app.")
+            }
+        }
     }
 
     fun fetchContent() {

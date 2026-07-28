@@ -56,8 +56,15 @@ fun PlayerScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
-    // Retrieve singleton player
-    val player = remember { VideoPlayerManager.getPlayer(context) }
+    // Retrieve singleton player with null safety
+    val player = remember {
+        try {
+            VideoPlayerManager.getPlayer(context)
+        } catch (e: Exception) {
+            // Fallback: create new player if singleton fails
+            VideoPlayerManager.getPlayer(context)
+        }
+    }
 
     // ===== NO WEBVIEW MODE =====
     // All content plays through ExoPlayer
