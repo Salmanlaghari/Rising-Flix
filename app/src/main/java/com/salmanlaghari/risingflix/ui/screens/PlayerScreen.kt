@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
@@ -54,11 +55,15 @@ fun PlayerScreen(
 
     val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail")
 
-    // Start playing current video
+    // Start playing current video safely
     LaunchedEffect(videoDetails.id) {
-        if (!isWebViewMode) {
-            VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
-        } else {
+        if (!isWebViewMode && videoDetails.videoUrl.isNotEmpty()) {
+            try {
+                VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Playback Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        } else if (isWebViewMode) {
             VideoPlayerManager.pause()
         }
     }
@@ -225,11 +230,14 @@ fun PlayerScreen(
                     }
                 }
             } else {
+                // ExoPlayer View
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {
                             this.player = player
-                            useController = false
+                            useController = false // We draw custom overlay controls
+                            // Force aspect ratio
+                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                         }
                     },
                     modifier = Modifier.fillMaxSize()
@@ -251,7 +259,10 @@ fun PlayerScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = onBackClick) {
+                            IconButton(
+                                onClick = onBackClick,
+                                modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowBack,
                                     contentDescription = "Back",
@@ -259,167 +270,179 @@ fun PlayerScreen(
                                 )
                             }
 
-                            Row {
-                                // Subtitle Button (Using standard Info icon for safety)
-                                IconButton(onClick = {
-                                    isSubtitlesEnabled = !isSubtitlesEnabled
-                                    Toast.makeText(context, if (isSubtitlesEnabled) "Subtitles Enabled" else "Subtitles Disabled", Toast.LENGTH_SHORT).show()
-                                }) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                IconButton(onClick = { isSubtitlesEnabled = !isSubtitlesEnabled }) {
                                     Icon(
-                                        imageVector = Icons.Default.Info,
+                                        imageVector = Icons.Default.ClosedCaption,
                                         contentDescription = "Subtitles",
                                         tint = if (isSubtitlesEnabled) AccentCyan else TextMain
                                     )
                                 }
-
-                                // Google Cast Button (Using standard Star icon for TV casting simulation)
-                                IconButton(onClick = {
-                                    Toast.makeText(context, "Scanning for Cast devices in network...", Toast.LENGTH_SHORT).show()
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = "Cast to TV",
-                                        tint = TextMain
-                                    )
-                                }
-
-                                // Settings Quality Selection
                                 IconButton(onClick = { showQualityDialog = true }) {
                                     Icon(
-                                        imageVector = Icons.Default.Settings,
+                                        imageVector = Icons.Default.Tune,
                                         contentDescription = "Quality",
                                         tint = TextMain
                                     )
                                 }
+                                IconButton(onClick = {
+                                    Toast.makeText(context, "Scanning for Chromecast devices...", Toast.LENGTH_SHORT).show()
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Cast,
+                                        contentDescription = "Cast",
+                                        tint = TextMain
+                                    )
+                                }
                             }
                         }
 
-                        // Centered controller triggers
-                        Row(
-                            modifier = Modifier.align(Alignment.Center),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(32.dp)
-                        ) {
-                            IconButton(onClick = { player.seekTo((player.currentPosition - 10000).coerceAtLeast(0L)) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Replay10,
-                                    contentDescription = "Rewind",
-                                    tint = TextMain,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .background(AccentCyan, RoundedCornerShape(50))
-                                    .clickable {
-                                        if (player.isPlaying) {
-                                            VideoPlayerManager.pause()
-                                        } else {
-                                            VideoPlayerManager.play()
-                                        }
-                                    }
-                            ) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = "PlayPause",
-                                    tint = TrueBlack,
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .align(Alignment.Center)
-                                )
-                            }
-
-                            IconButton(onClick = { player.seekTo((player.currentPosition + 10000).coerceAtMost(duration)) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Forward10,
-                                    contentDescription = "Forward",
-                                    tint = TextMain,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
-                        }
-
-                        // Progress Timeline row
+                        // Bottom Bar inside Player
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
+                            modifier = Modifier.align(Alignment.BottomCenter)
                         ) {
+                            // Rewind / Play-Pause / Forward
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = formatTime(currentPosition),
-                                    color = TextSub,
-                                    fontSize = 11.sp
-                                )
-                                Text(
-                                    text = formatTime(duration),
-                                    color = TextSub,
-                                    fontSize = 11.sp
-                                )
+                                IconButton(onClick = { player.seekTo(player.currentPosition - 10000) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Replay10,
+                                        contentDescription = "Rewind 10s",
+                                        tint = TextMain
+                                    )
+                                }
+
+                                FilledIconButton(
+                                    onClick = {
+                                        if (isPlaying) VideoPlayerManager.pause() else VideoPlayerManager.play()
+                                    },
+                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = AccentCyan)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = if (isPlaying) "Pause" else "Play",
+                                        tint = TrueBlack
+                                    )
+                                }
+
+                                IconButton(onClick = { player.seekTo(player.currentPosition + 10000) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Forward10,
+                                        contentDescription = "Forward 10s",
+                                        tint = TextMain
+                                    )
+                                }
                             }
 
-                            Slider(
-                                value = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f,
-                                onValueChange = { fraction ->
-                                    val target = (fraction * duration).toLong()
-                                    player.seekTo(target)
-                                    currentPosition = target
-                                },
-                                colors = SliderDefaults.colors(
-                                    activeTrackColor = AccentCyan,
-                                    thumbColor = AccentCyan
-                                ),
+                            // Seek Timeline Bar
+                            Column(
                                 modifier = Modifier.fillMaxWidth()
-                            )
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = formatTime(currentPosition),
+                                        color = TextSub,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = formatTime(duration),
+                                        color = TextSub,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+                                val animatedProgress by animateFloatAsState(targetValue = progress)
+
+                                Slider(
+                                    value = animatedProgress,
+                                    onValueChange = { newValue ->
+                                        player.seekTo((newValue * duration).toLong())
+                                    },
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = AccentCyan,
+                                        activeTrackColor = AccentCyan,
+                                        inactiveTrackColor = TextSub.copy(alpha = 0.3f)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // --- MOVIE DETAILS & ACTIONS ---
+        // --- MOVIE DETAILS SECTION ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
+            // Title & Meta Data
             Text(
                 text = videoDetails.title,
                 color = TextMain,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Sub-info row (Rating, Year, Duration, Quality)
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Rating",
-                        tint = GoldAccent,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = videoDetails.rating,
-                        color = TextMain,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                // Gold Rating Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(GoldAccent.copy(alpha = 0.15f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "⭐",
+                            color = GoldAccent,
+                            fontSize = 12.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = videoDetails.rating,
+                            color = GoldAccent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
-                Text(text = videoDetails.releaseYear, color = TextSub, fontSize = 13.sp)
-                Text(text = videoDetails.duration, color = TextSub, fontSize = 13.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = videoDetails.releaseYear,
+                    color = TextSub,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = videoDetails.duration,
+                    color = TextSub,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Box(
                     modifier = Modifier
