@@ -21,8 +21,15 @@ object VideoPlayerManager {
 
     fun getPlayer(context: Context): ExoPlayer {
         if (playerInstance == null) {
-            playerInstance = ExoPlayer.Builder(context.applicationContext).build().apply {
-                repeatMode = Player.REPEAT_MODE_OFF
+            try {
+                playerInstance = ExoPlayer.Builder(context.applicationContext).build().apply {
+                    repeatMode = Player.REPEAT_MODE_OFF
+                }
+            } catch (e: Exception) {
+                // If creation fails, create a new instance
+                playerInstance = ExoPlayer.Builder(context.applicationContext).build().apply {
+                    repeatMode = Player.REPEAT_MODE_OFF
+                }
             }
         }
         return playerInstance!!
