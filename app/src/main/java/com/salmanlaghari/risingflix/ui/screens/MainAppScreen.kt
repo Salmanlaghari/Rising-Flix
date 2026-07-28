@@ -31,18 +31,14 @@ fun MainAppScreen(
 
         // Overlay Player Details & ExoPlayer Screen if a video is actively selected!
         selectedVideoDetails?.let { details ->
-            try {
-                PlayerScreen(
-                    videoDetails = details,
-                    onBackClick = { viewModel.selectVideo(null) },
-                    onRelatedVideoClick = { related ->
-                        viewModel.selectVideo(related)
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-            } catch (e: Exception) {
-                // If PlayerScreen fails to load, just show the home screen
-            }
+            PlayerScreen(
+                videoDetails = details,
+                onBackClick = { viewModel.selectVideo(null) },
+                onRelatedVideoClick = { related ->
+                    viewModel.selectVideo(related)
+                },
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
