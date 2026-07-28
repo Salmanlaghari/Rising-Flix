@@ -99,11 +99,18 @@ class ContentRepository(private val apiService: ApiService) {
         var featured: MovieItem? = null
 
         val responseResult = try {
-            // Try GitHub content first (has working video URLs)
-            val response = apiService.getContentList()
-            val merged = mergeMovieBoxContent(response)
-            cachedContentList = merged
-            merged
+            // Try HDMoviesCloud content first (real movies)
+            val hdMoviesContent = HDMoviesCloudContent.getContentResponse()
+            if (hdMoviesContent.categories.isNotEmpty()) {
+                cachedContentList = hdMoviesContent
+                hdMoviesContent
+            } else {
+                // Fallback to GitHub content
+                val response = apiService.getContentList()
+                val merged = mergeMovieBoxContent(response)
+                cachedContentList = merged
+                merged
+            }
         } catch (e: Exception) {
             val mergedFallback = mergeMovieBoxContent(getFallbackContentList())
             cachedContentList ?: mergedFallback
