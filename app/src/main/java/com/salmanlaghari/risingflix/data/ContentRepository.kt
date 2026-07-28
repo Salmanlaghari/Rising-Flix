@@ -99,16 +99,11 @@ class ContentRepository(private val apiService: ApiService) {
         var featured: MovieItem? = null
 
         val responseResult = try {
-            val scraped = scrapeMovieBoxContent()
-            if (scraped != null && scraped.categories.isNotEmpty()) {
-                cachedContentList = scraped
-                scraped
-            } else {
-                val response = apiService.getContentList()
-                val merged = mergeMovieBoxContent(response)
-                cachedContentList = merged
-                merged
-            }
+            // Try GitHub content first (has working video URLs)
+            val response = apiService.getContentList()
+            val merged = mergeMovieBoxContent(response)
+            cachedContentList = merged
+            merged
         } catch (e: Exception) {
             val mergedFallback = mergeMovieBoxContent(getFallbackContentList())
             cachedContentList ?: mergedFallback
