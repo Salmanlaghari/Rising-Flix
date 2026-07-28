@@ -29,7 +29,8 @@ fun RisingFlixTheme(content: @Composable () -> Unit) {
         SideEffect {
             try {
                 val activity = view.context as? Activity
-                activity?.let { window ->
+                activity?.let { act ->
+                    val window = act.window
                     window.statusBarColor = DeepBlueBg.toArgb()
                     window.navigationBarColor = TrueBlack.toArgb()
                     val controller = WindowCompat.getInsetsController(window, view)
