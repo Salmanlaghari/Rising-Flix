@@ -27,19 +27,12 @@ fun RisingFlixTheme(content: @Composable () -> Unit) {
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            try {
-                val activity = view.context as? Activity
-                activity?.let { act ->
-                    val window = act.window
-                    window.statusBarColor = DeepBlueBg.toArgb()
-                    window.navigationBarColor = TrueBlack.toArgb()
-                    val controller = WindowCompat.getInsetsController(window, view)
-                    controller.isAppearanceLightStatusBars = false
-                    controller.isAppearanceLightNavigationBars = false
-                }
-            } catch (e: Exception) {
-                // Silently handle if context is not an Activity
-            }
+            val window = (view.context as Activity).window
+            window.statusBarColor = DeepBlueBg.toArgb()
+            window.navigationBarColor = TrueBlack.toArgb()
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = false
+            controller.isAppearanceLightNavigationBars = false
         }
     }
 
