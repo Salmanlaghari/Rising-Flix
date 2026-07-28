@@ -39,6 +39,12 @@ import com.salmanlaghari.risingflix.ui.components.PremiumVideoCard
 import com.salmanlaghari.risingflix.ui.theme.*
 import kotlinx.coroutines.delay
 
+/**
+ * Player Screen - NO WebView, NO MovieBox branding!
+ * 
+ * All content is played through ExoPlayer using proxied URLs
+ * Users see ONLY Rising Flix player - clean and premium!
+ */
 @SuppressLint("UnrememberedMutableState")
 @Composable
 fun PlayerScreen(
@@ -53,18 +59,25 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail")
-
-    // Start playing current video safely
+    // ===== NO WEBVIEW MODE =====
+    // All content plays through ExoPlayer
+    // Video URLs are already proxied - no MovieBox branding!
+    
+    // Start playing video
     LaunchedEffect(videoDetails.id) {
-        if (!isWebViewMode && videoDetails.videoUrl.isNotEmpty()) {
+        if (videoDetails.videoUrl.isNotEmpty()) {
             try {
-                VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
+                VideoPlayerManager.playVideo(
+                    context, 
+                    videoDetails.id, 
+                    videoDetails.videoUrl, 
+                    videoDetails.subtitlesUrl
+                )
             } catch (e: Exception) {
                 Toast.makeText(context, "Playback Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
-        } else if (isWebViewMode) {
-            VideoPlayerManager.pause()
+        } else {
+            Toast.makeText(context, "No video source available", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -130,7 +143,7 @@ fun PlayerScreen(
             .background(DeepBlueBg)
             .verticalScroll(scrollState)
     ) {
-        // --- CINEMATIC FULLSCREEN EXOPLAYER SECTION ---
+        // ===== CINEMATIC FULLSCREEN EXOPLAYER SECTION =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -143,247 +156,158 @@ fun PlayerScreen(
                     showControls = !showControls
                 }
         ) {
-            if (isWebViewMode) {
-                var webViewLoadError by remember { mutableStateOf(false) }
-
-                if (webViewLoadError) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                "WebView could not be initialized on your device",
-                                color = TextMain,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(videoDetails.videoUrl)
-                                        )
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Cannot open browser", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
-                            ) {
-                                Text("Open in Browser")
-                            }
-                        }
+            // ExoPlayer View - ALWAYS USE THIS (No WebView!)
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        this.player = player
+                        useController = false // We draw custom overlay controls
+                        resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
-                } else {
-                    AndroidView(
-                        factory = { ctx ->
-                            try {
-                                android.webkit.WebView(ctx).apply {
-                                    layoutParams = android.view.ViewGroup.LayoutParams(
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    settings.apply {
-                                        javaScriptEnabled = true
-                                        domStorageEnabled = true
-                                        mediaPlaybackRequiresUserGesture = false
-                                        userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
-                                        useWideViewPort = true
-                                        loadWithOverviewMode = true
-                                    }
-                                    webViewClient = android.webkit.WebViewClient()
-                                    webChromeClient = android.webkit.WebChromeClient()
-                                    loadUrl(videoDetails.videoUrl)
-                                }
-                            } catch (e: Throwable) {
-                                e.printStackTrace()
-                                webViewLoadError = true
-                                android.view.View(ctx) // Return a safe blank dummy view
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
-                // Render floating back button over WebView
+            // Overlaid controls
+            if (showControls) {
                 Box(
                     modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
                         .padding(16.dp)
-                        .align(Alignment.TopStart)
                 ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextMain
-                        )
-                    }
-                }
-            } else {
-                // ExoPlayer View
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            this.player = player
-                            useController = false // We draw custom overlay controls
-                            // Force aspect ratio
-                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // Overlaid controls
-                if (showControls) {
-                    Box(
+                    // Top Bar inside Player
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.6f))
-                            .padding(16.dp)
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Top Bar inside Player
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = TextMain
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            IconButton(onClick = { isSubtitlesEnabled = !isSubtitlesEnabled }) {
+                                Icon(
+                                    imageVector = Icons.Default.ClosedCaption,
+                                    contentDescription = "Subtitles",
+                                    tint = if (isSubtitlesEnabled) AccentCyan else TextMain
+                                )
+                            }
+                            IconButton(onClick = { showQualityDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = "Quality",
+                                    tint = TextMain
+                                )
+                            }
+                            IconButton(onClick = {
+                                Toast.makeText(context, "Scanning for Chromecast devices...", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Cast,
+                                    contentDescription = "Cast",
+                                    tint = TextMain
+                                )
+                            }
+                        }
+                    }
+
+                    // Bottom Bar inside Player
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    ) {
+                        // Rewind / Play-Pause / Forward
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .align(Alignment.TopCenter),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(
-                                onClick = onBackClick,
-                                modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
-                            ) {
+                            IconButton(onClick = { player.seekTo(player.currentPosition - 10000) }) {
                                 Icon(
-                                    imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "Back",
+                                    imageVector = Icons.Default.Replay10,
+                                    contentDescription = "Rewind 10s",
                                     tint = TextMain
                                 )
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                IconButton(onClick = { isSubtitlesEnabled = !isSubtitlesEnabled }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ClosedCaption,
-                                        contentDescription = "Subtitles",
-                                        tint = if (isSubtitlesEnabled) AccentCyan else TextMain
-                                    )
-                                }
-                                IconButton(onClick = { showQualityDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Tune,
-                                        contentDescription = "Quality",
-                                        tint = TextMain
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    Toast.makeText(context, "Scanning for Chromecast devices...", Toast.LENGTH_SHORT).show()
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Cast,
-                                        contentDescription = "Cast",
-                                        tint = TextMain
-                                    )
-                                }
+                            FilledIconButton(
+                                onClick = {
+                                    if (isPlaying) VideoPlayerManager.pause() else VideoPlayerManager.play()
+                                },
+                                colors = IconButtonDefaults.filledIconButtonColors(containerColor = AccentCyan)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    tint = TrueBlack
+                                )
+                            }
+
+                            IconButton(onClick = { player.seekTo(player.currentPosition + 10000) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Forward10,
+                                    contentDescription = "Forward 10s",
+                                    tint = TextMain
+                                )
                             }
                         }
 
-                        // Bottom Bar inside Player
+                        // Seek Timeline Bar
                         Column(
-                            modifier = Modifier.align(Alignment.BottomCenter)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Rewind / Play-Pause / Forward
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                IconButton(onClick = { player.seekTo(player.currentPosition - 10000) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Replay10,
-                                        contentDescription = "Rewind 10s",
-                                        tint = TextMain
-                                    )
-                                }
-
-                                FilledIconButton(
-                                    onClick = {
-                                        if (isPlaying) VideoPlayerManager.pause() else VideoPlayerManager.play()
-                                    },
-                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = AccentCyan)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                        contentDescription = if (isPlaying) "Pause" else "Play",
-                                        tint = TrueBlack
-                                    )
-                                }
-
-                                IconButton(onClick = { player.seekTo(player.currentPosition + 10000) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Forward10,
-                                        contentDescription = "Forward 10s",
-                                        tint = TextMain
-                                    )
-                                }
-                            }
-
-                            // Seek Timeline Bar
-                            Column(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = formatTime(currentPosition),
-                                        color = TextSub,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = formatTime(duration),
-                                        color = TextSub,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
-                                val animatedProgress by animateFloatAsState(targetValue = progress)
-
-                                Slider(
-                                    value = animatedProgress,
-                                    onValueChange = { newValue ->
-                                        player.seekTo((newValue * duration).toLong())
-                                    },
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = AccentCyan,
-                                        activeTrackColor = AccentCyan,
-                                        inactiveTrackColor = TextSub.copy(alpha = 0.3f)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
+                                Text(
+                                    text = formatTime(currentPosition),
+                                    color = TextSub,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = formatTime(duration),
+                                    color = TextSub,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
+
+                            val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+                            val animatedProgress by animateFloatAsState(targetValue = progress)
+
+                            Slider(
+                                value = animatedProgress,
+                                onValueChange = { newValue ->
+                                    player.seekTo((newValue * duration).toLong())
+                                },
+                                colors = SliderDefaults.colors(
+                                    thumbColor = AccentCyan,
+                                    activeTrackColor = AccentCyan,
+                                    inactiveTrackColor = TextSub.copy(alpha = 0.3f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
             }
         }
 
-        // --- MOVIE DETAILS SECTION ---
+        // ===== MOVIE DETAILS SECTION =====
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -524,7 +448,7 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // --- RELATED CONTENT LIST ---
+            // ===== RELATED CONTENT LIST =====
             if (videoDetails.relatedItems.isNotEmpty()) {
                 Text(
                     text = "More Like This",
