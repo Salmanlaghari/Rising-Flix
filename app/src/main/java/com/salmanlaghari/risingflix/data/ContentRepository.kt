@@ -281,7 +281,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A young boy known as the Avatar must master the four elemental powers to save a world at war.",
                         rating = "9.5",
                         duration = "45 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Trending",
                         year = "2024",
                         quality = "4K"
@@ -294,7 +294,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "After her uncle's sudden death, a college student inherits a mysterious shopping mall frequented by deadly killers.",
                         rating = "9.2",
                         duration = "50 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Trending",
                         year = "2024",
                         quality = "8K"
@@ -307,7 +307,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An elite special forces unit must prevent a global catastrophe when a tactical satellite falls into rogue hands.",
                         rating = "8.7",
                         duration = "112 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Trending",
                         year = "2024",
                         quality = "4K"
@@ -320,7 +320,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "After years off the grid, Agent Kim is reactivated to neutralize a threat from her past that endangers the agency.",
                         rating = "9.0",
                         duration = "124 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Trending",
                         year = "2026",
                         quality = "8K"
@@ -333,7 +333,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Two drift racers with contrasting backgrounds team up to win a tournament while being hunted by corrupt syndicates.",
                         rating = "9.1",
                         duration = "118 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
                         category = "Trending",
                         year = "2026",
                         quality = "4K"
@@ -353,7 +353,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "In a near-future dystopian Los Angeles, a family struggles to survive and bring liberty back to the people.",
                         rating = "9.6",
                         duration = "48 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Cinema",
                         year = "2026",
                         quality = "8K"
@@ -366,7 +366,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An action-packed race against time where a detective has exactly 72 hours to dismantle an international syndicate.",
                         rating = "8.9",
                         duration = "118 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Cinema",
                         year = "2026",
                         quality = "4K"
@@ -379,7 +379,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An aging Robin Hood grapples with his past and battles a ruthless new lord to secure his legacy.",
                         rating = "9.3",
                         duration = "125 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Cinema",
                         year = "2026",
                         quality = "8K"
@@ -392,7 +392,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "The legendary bounty hunter and his powerful ward Grogu set out on a new cosmic journey through the outer rim.",
                         rating = "9.7",
                         duration = "132 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Cinema",
                         year = "2026",
                         quality = "8K"
@@ -405,7 +405,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "High-octane action thriller highlighting a street racer who enters a dangerous underworld after a family tragedy.",
                         rating = "9.5",
                         duration = "110 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
                         category = "Cinema",
                         year = "2026",
                         quality = "8K"
@@ -425,7 +425,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "The highly anticipated Hindi dubbed version of Wednesday Addams' dark, mystery-filled adventure.",
                         rating = "9.4",
                         duration = "52 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Hindi",
                         year = "2025",
                         quality = "8K"
@@ -438,7 +438,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An intense high-drama family saga of power, loyalty, and retribution in the underworld in Hindi.",
                         rating = "9.1",
                         duration = "165 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Hindi",
                         year = "2024",
                         quality = "4K"
@@ -451,7 +451,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A futuristic sci-fi epic inspired by ancient mythology, depicting the arrival of a divine avatar in Hindi.",
                         rating = "9.3",
                         duration = "172 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Hindi",
                         year = "2024",
                         quality = "8K"
@@ -464,7 +464,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A high-octane emotional thriller detailing a man's struggle to correct the wrongs in society with a team of skilled women.",
                         rating = "9.2",
                         duration = "168 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Hindi",
                         year = "2023",
                         quality = "4K"
@@ -484,7 +484,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Enola takes on her most complex case yet, involving a network of elite conspiracies in Victorian London.",
                         rating = "9.0",
                         duration = "115 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Hollywood",
                         year = "2025",
                         quality = "4K"
@@ -497,7 +497,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Set 10,000 years before the rise of Paul Atreides, tracing the origins of the legendary Bene Gesserit sisterhood.",
                         rating = "9.5",
                         duration = "60 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Hollywood",
                         year = "2025",
                         quality = "8K"
@@ -510,7 +510,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A gangster family epic set in Birmingham, England in 1919, centered on a gang led by Tommy Shelby.",
                         rating = "9.4",
                         duration = "60 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Hollywood",
                         year = "2013",
                         quality = "4K"
@@ -523,7 +523,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A mafia capo is exiled to Tulsa, Oklahoma, where he builds a new criminal empire with unlikely allies.",
                         rating = "9.1",
                         duration = "45 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Hollywood",
                         year = "2022",
                         quality = "4K"
@@ -543,7 +543,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "The epic conclusion to Pushpa's rise through the red sandalwood smuggling empire, facing fierce opposition.",
                         rating = "9.6",
                         duration = "168 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "South Indian",
                         year = "2025",
                         quality = "8K"
@@ -556,7 +556,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An intense action chronicle depicting coastal lands where an iron-willed protector fights to protect his people.",
                         rating = "9.0",
                         duration = "158 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "South Indian",
                         year = "2024",
                         quality = "4K"
@@ -569,7 +569,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "In the lawless city of Khansaar, a commander goes to extreme lengths to protect his childhood friend.",
                         rating = "9.1",
                         duration = "175 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "South Indian",
                         year = "2024",
                         quality = "4K"
@@ -582,7 +582,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A mild-mannered cafe owner becomes a local hero, but his actions trigger ghosts from a dark criminal past.",
                         rating = "9.2",
                         duration = "164 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "South Indian",
                         year = "2023",
                         quality = "4K"
@@ -602,7 +602,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A classic Chinese historical drama outlining intrigue, forbidden romance, and the rise of a new general.",
                         rating = "9.2",
                         duration = "45 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Asian",
                         year = "2026",
                         quality = "4K"
@@ -615,7 +615,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Follow five young music trainees through trials and triumphs in their quest to become the next global K-Pop group.",
                         rating = "8.9",
                         duration = "40 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Asian",
                         year = "2025",
                         quality = "HD+"
@@ -628,7 +628,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A heartwarming Asian romance mapping two strong-willed professionals who clash in business but fall in love.",
                         rating = "9.0",
                         duration = "45 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Asian",
                         year = "2025",
                         quality = "4K"
@@ -641,7 +641,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An aging executive gets a second chance at life when he is reborn as the rookie employee in his old firm.",
                         rating = "9.1",
                         duration = "50 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Asian",
                         year = "2025",
                         quality = "4K"
@@ -661,7 +661,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Relive the absolute best matchups, incredible title contests, and legendary high-flying wrestling action.",
                         rating = "9.5",
                         duration = "180 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Sports",
                         year = "2026",
                         quality = "8K"
@@ -674,7 +674,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A rising high school football player from South LA is recruited to play for Beverly Hills High, bringing cultural crashes.",
                         rating = "9.2",
                         duration = "45 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Sports",
                         year = "2018",
                         quality = "4K"
@@ -687,7 +687,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "The absolute best goals, spectacular saves, and legendary moments from the world's biggest football matches.",
                         rating = "9.7",
                         duration = "5 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Sports",
                         year = "2026",
                         quality = "8K"
@@ -700,7 +700,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "Adrenaline-fueled adventure capturing riders as they tackle vertical cliffs and drop-offs at breakneck speeds.",
                         rating = "9.4",
                         duration = "10 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Sports",
                         year = "2025",
                         quality = "4K"
@@ -720,7 +720,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "The legendary band of mutants returns to protect a world that hates and fears them in this nostalgic animated sequel.",
                         rating = "9.6",
                         duration = "30 min",
-                        videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                         category = "Cartoons",
                         year = "2024",
                         quality = "8K"
@@ -733,7 +733,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An eccentric, super-genius scientist drags his timid grandson on wild, dangerous, multi-dimensional space adventures.",
                         rating = "9.4",
                         duration = "22 min",
-                        videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                         category = "Cartoons",
                         year = "2024",
                         quality = "4K"
@@ -746,7 +746,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "An unaccomplished man is reborn into a magical medieval fantasy world, retaining his memories and seeking a fresh start.",
                         rating = "9.1",
                         duration = "24 min",
-                        videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                         category = "Cartoons",
                         year = "2022",
                         quality = "8K"
@@ -759,7 +759,7 @@ class ContentRepository(private val apiService: ApiService) {
                         description = "A classic animated adventure featuring a giant, gentle rabbit who decides to teach three mischievous forest rodents a lesson.",
                         rating = "8.8",
                         duration = "10 min",
-                        videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                        videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                         category = "Cartoons",
                         year = "2024",
                         quality = "HD+"
@@ -796,7 +796,7 @@ class ContentRepository(private val apiService: ApiService) {
             description = "A breathtaking visual masterpiece exploring the uncharted outer edge of the galaxy and the secrets of time-space travel.",
             rating = "9.8",
             duration = "12 min",
-            videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+            videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
             category = "Movies",
             year = "2026",
             quality = "8K"
@@ -811,7 +811,7 @@ class ContentRepository(private val apiService: ApiService) {
                 description = "An intense fantasy saga following Sintel as she tracks her lost dragon across the desolate mystical mountain kingdoms.",
                 rating = "9.2",
                 duration = "14 min",
-                videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
                 category = "Movies",
                 year = "2026",
                 quality = "8K"
@@ -824,7 +824,7 @@ class ContentRepository(private val apiService: ApiService) {
                 description = "In a post-apocalyptic cyberpunk city, a group of rebel technicians must use advanced quantum memory to stop a giant robot invasion.",
                 rating = "9.0",
                 duration = "12 min",
-                videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                 category = "Movies",
                 year = "2025",
                 quality = "4K"
@@ -840,7 +840,7 @@ class ContentRepository(private val apiService: ApiService) {
                 description = "An emotionally gripping romantic drama exploring love, sacrifice, and the unspoken promises that bridge two separate worlds.",
                 rating = "9.5",
                 duration = "5 min",
-                videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                 category = "Dramas",
                 year = "2026",
                 quality = "8K"
@@ -853,7 +853,7 @@ class ContentRepository(private val apiService: ApiService) {
                 description = "As the sun sets on a historic coastal village, two childhood friends uncover long-buried family secrets that will change their destiny.",
                 rating = "9.1",
                 duration = "3 min",
-                videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_10MB.mp4",
+                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
                 category = "Dramas",
                 year = "2025",
                 quality = "4K"
@@ -1052,7 +1052,7 @@ class ContentRepository(private val apiService: ApiService) {
             description = "Sintel is an independent film by the Blender Foundation. Follow her incredible journey to save her dragon.",
             rating = "9.6",
             duration = "15 min",
-            videoUrl = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+            videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
             category = "Hollywood",
             year = "2026",
             quality = "8K"
@@ -1071,7 +1071,7 @@ class ContentRepository(private val apiService: ApiService) {
                     description = "A classic sci-fi adventure demonstrating cutting edge CGI. Exploring deep quantum memory and robotic enhancements.",
                     rating = "9.4",
                     duration = "12 min",
-                    videoUrl = "https://www.w3schools.com/html/movie.mp4",
+                    videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
                     category = "Hollywood",
                     year = "2025",
                     quality = "4K"
@@ -1092,7 +1092,7 @@ class ContentRepository(private val apiService: ApiService) {
                     description = "A large and lovable rabbit teaches three mischievous forest rodents a classic lesson in manners.",
                     rating = "9.2",
                     duration = "10 min",
-                    videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4",
+                    videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
                     category = "Cartoons",
                     year = "2024",
                     quality = "HD+"
@@ -1113,7 +1113,7 @@ class ContentRepository(private val apiService: ApiService) {
                     description = "Witness the magnificent deep-sea creatures and jellyfish captured in ultra high definition video.",
                     rating = "9.5",
                     duration = "10 min",
-                    videoUrl = "https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_10MB.mp4",
+                    videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
                     category = "Sports",
                     year = "2026",
                     quality = "8K"
