@@ -7,38 +7,30 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Content Repository for Rising Flix
  * 
  * Manages content from proxy server (MovieBox content without branding)
+ * Backward compatible with existing MainViewModel
  */
-object ContentRepository {
+class ContentRepository(private val apiService: ApiService) {
     
-    // ===== CONFIGURATION =====
-    // Update this to your proxy server address
-    // For Android Emulator: http://10.0.2.2:8080
-    // For real device: http://YOUR_SERVER_IP:8080
-    // For production: https://your-domain.com
-    
-    private const val PROXY_SERVER_URL = "http://10.0.2.2:8080"
-    
-    // Legacy GitHub URL (for backward compatibility)
-    private const val LEGACY_BASE_URL = "https://raw.githubusercontent.com/"
-    
-    // ===== API INSTANCES =====
-    
-    // Proxy server API (for MovieBox content)
-    private val proxyApi: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(PROXY_SERVER_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
-    }
-    
-    // Legacy GitHub API (for original content)
-    private val legacyApi: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(LEGACY_BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
+    companion object {
+        // ===== CONFIGURATION =====
+        // Update this to your proxy server address
+        // For Android Emulator: http://10.0.2.2:8080
+        // For real device: http://YOUR_SERVER_IP:8080
+        // For production: https://your-domain.com
+        
+        private const val PROXY_SERVER_URL = "http://10.0.2.2:8080"
+        
+        // Legacy GitHub URL (for backward compatibility)
+        private const val LEGACY_BASE_URL = "https://raw.githubusercontent.com/"
+        
+        // Singleton proxy API instance
+        private val proxyApi: ApiService by lazy {
+            Retrofit.Builder()
+                .baseUrl(PROXY_SERVER_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(ApiService::class.java)
+        }
     }
     
     // Flag to determine which API to use
@@ -48,20 +40,21 @@ object ContentRepository {
     
     /**
      * Get all content (movies, series, etc.)
+     * Backward compatible with forceRefresh parameter
      */
-    suspend fun getContentList(): ContentResponse {
+    suspend fun getContentList(forceRefresh: Boolean = false): ContentResponse {
         return try {
             if (useProxyServer) {
                 // Try proxy server first
                 proxyApi.getContentList()
             } else {
                 // Use legacy GitHub content
-                legacyApi.getLegacyContentList()
+                apiService.getLegacyContentList()
             }
         } catch (e: Exception) {
             // Fallback to legacy if proxy fails
             try {
-                legacyApi.getLegacyContentList()
+                apiService.getLegacyContentList()
             } catch (e2: Exception) {
                 // Return empty response if both fail
                 ContentResponse(
@@ -95,12 +88,12 @@ object ContentRepository {
                     details
                 }
             } else {
-                legacyApi.getLegacyVideoDetails(id)
+                apiService.getLegacyVideoDetails(id)
             }
         } catch (e: Exception) {
             // Fallback to legacy
             try {
-                legacyApi.getLegacyVideoDetails(id)
+                apiService.getLegacyVideoDetails(id)
             } catch (e2: Exception) {
                 null
             }
@@ -109,19 +102,23 @@ object ContentRepository {
     
     /**
      * Search for movies/shows
+     * Returns List<MovieItem> for backward compatibility
      */
-    suspend fun searchMovies(query: String): SearchResponse {
+    suspend fun searchMovies(query: String): List<MovieItem> {
         return try {
             if (useProxyServer) {
-                proxyApi.searchMovies(query)
+                val response = proxyApi.searchMovies(query)
+                response.results
             } else {
-                legacyApi.legacySearchMovies(query)
+                val response = apiService.legacySearchMovies(query)
+                response.results
             }
         } catch (e: Exception) {
             try {
-                legacyApi.legacySearchMovies(query)
+                val response = apiService.legacySearchMovies(query)
+                response.results
             } catch (e2: Exception) {
-                SearchResponse(results = emptyList())
+                emptyList()
             }
         }
     }
@@ -134,11 +131,11 @@ object ContentRepository {
             if (useProxyServer) {
                 proxyApi.getTrendingMovies()
             } else {
-                legacyApi.getLegacyTrendingMovies()
+                apiService.getLegacyTrendingMovies()
             }
         } catch (e: Exception) {
             try {
-                legacyApi.getLegacyTrendingMovies()
+                apiService.getLegacyTrendingMovies()
             } catch (e2: Exception) {
                 emptyList()
             }
@@ -174,8 +171,7 @@ object ContentRepository {
      */
     suspend fun isProxyServerAvailable(): Boolean {
         return try {
-            // Try to make a simple request to the proxy server
-            val response = proxyApi.getContentList()
+            proxyApi.getContentList()
             true
         } catch (e: Exception) {
             false
