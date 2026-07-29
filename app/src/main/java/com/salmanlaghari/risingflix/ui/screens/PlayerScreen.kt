@@ -89,8 +89,8 @@ fun PlayerScreen(
     var selectedServer by remember { mutableStateOf(0) }
     val serverLinks = listOf(
         videoDetails.videoUrl,
-        videoDetails.videoUrl.replace("archive.org", "sample-videos.com").replace("BigBuckBunny_512kb.mp4", "video321/mp4/720/big_buck_bunny_720p_1mb.mp4"),
-        videoDetails.videoUrl.replace("archive.org", "www.learningcontainer.com").replace("BigBuckBunny_512kb.mp4", "wp-content/uploads/2020/05/sample-mp4-file.mp4")
+        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "Sintel.mp4"),
+        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "TearsOfSteel.mp4")
     )
     val serverNames = listOf("Server 1", "Server 2", "Server 3")
 
