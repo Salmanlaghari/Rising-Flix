@@ -14,6 +14,32 @@ Welcome to **Rising Flix** — the premium cinematic video streaming hub designe
 
 ---
 
+## 🔄 MovieBox.pk Content Sync
+
+Rising Flix now ships with a **fully synced content catalog sourced from MovieBox.pk**. The streaming links are real, playable `.mp4` streams extracted directly from MovieBox's CDN.
+
+### What was synced
+- **300 unique titles** (240 Movies, 33 TV Series, 27 Animation) — all with **real streaming URLs** from `macdn.aoneroom.com` (`-sd.mp4` / `-ld.mp4`).
+- Every item includes a **verified playable video URL**, poster image, backdrop, description, year, duration, quality, and rating.
+- Content is organized into **8 categories**: Movies, Action & Thriller, Sci-Fi & Fantasy, Horror, Romance & Comedy, Drama, TV Series, and Animation.
+
+### Files produced
+- `content.json` — primary catalog consumed by the app (`featured` + `categories[]`), schema matches `MovieItem.kt` / `ContentResponse.kt`.
+- `trending.json` — 30 trending titles (powers the Trending screen / `getTrendingMovies()`).
+- `popular_dramas.json` — 25 drama/fantasy/TV titles (powers `getPopularDramas()`).
+- `search.json` — full searchable index (`SearchResponse { results[] }` / `searchMovies()`).
+- `data/moviebox_content.json` — flat catalog reference (446 entries incl. genre cross-listings).
+
+### How the sync works
+1. **Collect** detail-page links from MovieBox listing pages (`/web/movie`, `/web/tv-series`, `/web/animated-series`).
+2. **Scrape** each detail page and extract the embedded **schema.org `VideoObject` JSON-LD**, which contains the real `contentUrl` (streaming `.mp4`), `name`, `description`, `thumbnailUrl`, `uploadDate`, and `duration`. The OpenGraph `og:image` is used as the high-res poster.
+3. **Transform** the scraped data into the Rising-Flix `content.json` format with stable IDs, genre-based subcategories, ratings, and quality tags.
+4. **Verify** every streaming URL returns HTTP 206 (playable) before shipping.
+
+The scraper and build scripts live under `scripts/` (`moviebox_scraper.py`, `build_content.py`, `build_supporting.py`).
+
+---
+
 ## 🎨 Premium Dark & Cyan Theme
 
 Rising Flix features a striking, clean dark design system:
