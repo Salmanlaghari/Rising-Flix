@@ -40,10 +40,10 @@ class ContentRepository(private val apiService: ApiService) {
         }
 
         // TheMovieBox content FIRST so it appears at the top of the app
-        val themovieboxContent = try {
-            TheMovieBoxContent.fetchContent()
+        val themovieboxContent: ContentResponse = try {
+            TheMovieBoxContent.fetchContent() ?: getFallbackContentList()
         } catch (e: Exception) {
-            null
+            getFallbackContentList()
         }
 
         // AutoContentManager fetches everything automatically — no API key needed
