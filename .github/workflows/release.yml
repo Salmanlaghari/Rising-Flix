@@ -70,7 +70,6 @@ jobs:
         with:
           files: |
             app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/bundle/release/app-release.aab
           name: Release ${{ github.ref_name }}
           body: |
             🎥 **Rising Flix v1.0.0 Production Release** 🎥

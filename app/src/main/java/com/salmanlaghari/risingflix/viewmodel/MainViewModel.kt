@@ -1,6 +1,7 @@
 package com.salmanlaghari.risingflix.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.salmanlaghari.risingflix.data.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +11,7 @@ import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val apiService by lazy {
         Retrofit.Builder()
@@ -20,7 +21,7 @@ class MainViewModel : ViewModel() {
             .create(ApiService::class.java)
     }
 
-    private val repository by lazy { ContentRepository(apiService) }
+    private val repository by lazy { ContentRepository(apiService, getApplication()) }
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()

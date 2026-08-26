@@ -16,7 +16,7 @@ interface ContentSource {
     suspend fun fetchContent(): ContentResponse?
 }
 
-class ContentRepository(private val apiService: ApiService) {
+class ContentRepository(private val apiService: ApiService, private val context: android.content.Context) {
 
     // In-memory caching
     private var cachedContentList: ContentResponse? = null
@@ -41,7 +41,7 @@ class ContentRepository(private val apiService: ApiService) {
 
         // TheMovieBox content FIRST so it appears at the top of the app
         val themovieboxContent: ContentResponse = try {
-            TheMovieBoxContent.fetchContent() ?: getFallbackContentList()
+            TheMovieBoxContent.fetchContent(context) ?: getFallbackContentList()
         } catch (e: Exception) {
             getFallbackContentList()
         }

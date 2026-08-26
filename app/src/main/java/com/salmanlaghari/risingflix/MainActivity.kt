@@ -11,10 +11,13 @@ import com.salmanlaghari.risingflix.data.VideoPlayerManager
 import com.salmanlaghari.risingflix.ui.screens.MainAppScreen
 import com.salmanlaghari.risingflix.ui.theme.RisingFlixTheme
 import com.salmanlaghari.risingflix.viewmodel.MainViewModel
+import com.salmanlaghari.risingflix.viewmodel.MainViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private val mainViewModel: MainViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels {
+        MainViewModelFactory(application)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

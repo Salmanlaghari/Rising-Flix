@@ -20,7 +20,7 @@ object TheMovieBoxContent {
         "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     )
 
-    suspend fun fetchContent(): ContentResponse? = withContext(Dispatchers.IO) {
+    suspend fun fetchContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
         try {
             val doc = Jsoup.connect(BASE_URL)
                 .userAgent(USER_AGENTS.random())
@@ -32,7 +32,7 @@ object TheMovieBoxContent {
 
             if (nuxtScriptContent == null || nuxtScriptContent.isEmpty()) {
                 Log.w(TAG, "No NUXXT_DATA found on themoviebox.xyz")
-                return@withContext null
+                return@withContext loadFallbackContent(context)
             }
 
             val jsonArray = JsonParser.parseString(nuxtScriptContent).asJsonArray
@@ -103,9 +103,50 @@ object TheMovieBoxContent {
             }
 
             Log.w(TAG, "No categories found in themoviebox.xyz response")
-            null
+            loadFallbackContent(context)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch themoviebox.xyz content", e)
+            loadFallbackContent(context)
+        }
+    }
+
+    private fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
+        try {
+            val inputStream = context.assets.open("themoviebox_content.json")
+            val json = inputStream.bufferedReader().use { it.readText() }
+            val items = com.google.gson.Gson().fromJson(json, Array::class.java)
+                ?.mapNotNull { it as? Map<*, *> }
+                ?.map { item ->
+                    MovieItem(
+                        id = "tmb_${item["id"]}",
+                        title = item["title"] as? String ?: "",
+                        poster = item["poster"] as? String ?: "",
+                        backdrop = item["backdrop"] as? String ?: "",
+                        description = item["description"] as? String ?: "",
+                        rating = item["rating"] as? String ?: "",
+                        duration = item["duration"] as? String ?: "",
+                        videoUrl = item["videoUrl"] as? String ?: "",
+                        category = item["category"] as? String ?: "Movies",
+                        year = item["year"] as? String ?: "",
+                        quality = item["quality"] as? String ?: "HD"
+                    )
+                } ?: emptyList()
+
+            val categories = items.groupBy { it.category }.map { (name, items) ->
+                Category(
+                    id = "cat_tmb_${name.lowercase().replace(" ", "_")}",
+                    name = name,
+                    icon = "movie",
+                    items = items
+                )
+            }
+
+            ContentResponse(
+                featured = items.firstOrNull(),
+                categories = categories
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load fallback content", e)
             null
         }
     }
