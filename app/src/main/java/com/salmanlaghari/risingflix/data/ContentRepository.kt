@@ -55,10 +55,17 @@ class ContentRepository(private val apiService: ApiService) {
             null
         }
 
-        // Merge auto + github content
+        // Merge auto + github + themoviebox content
+        val themovieboxContent = try {
+            TheMovieBoxContent.fetchContent()
+        } catch (e: Exception) {
+            null
+        }
+
         val merged = mergeContent(autoContent, githubContent)
-        cachedContentList = merged
-        merged
+        val finalMerged = mergeContent(merged, themovieboxContent)
+        cachedContentList = finalMerged
+        finalMerged
     }
 
     private fun mergeContent(primary: ContentResponse, secondary: ContentResponse?): ContentResponse {

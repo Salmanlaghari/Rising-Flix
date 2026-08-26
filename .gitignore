@@ -14,3 +14,4 @@ local.properties
 *.jks
 keystore.properties
 release-key.jks
+scripts/node_modules/
