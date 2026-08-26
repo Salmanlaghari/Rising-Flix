@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.salmanlaghari.risingflix.data.Category
 import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.ui.components.FeaturedBanner
+import com.salmanlaghari.risingflix.ui.components.PremiumSearchBar
 import com.salmanlaghari.risingflix.ui.components.PremiumVideoCard
 import com.salmanlaghari.risingflix.ui.theme.*
 import com.salmanlaghari.risingflix.viewmodel.MainViewModel
@@ -39,6 +40,8 @@ fun ExploreScreen(
     val uiState by viewModel.uiState.collectAsState()
     val exploreCategory by viewModel.exploreCategoryFilter.collectAsState()
     val context = LocalContext.current
+
+    var searchQuery by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -67,6 +70,12 @@ fun ExploreScreen(
                 fontWeight = FontWeight.ExtraBold
             )
         }
+
+        PremiumSearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
 
         when (uiState) {
             is UiState.Loading -> {
@@ -101,15 +110,27 @@ fun ExploreScreen(
                     data.categories.flatMap { it.items }
                 }
 
-                if (itemsToShow.isEmpty()) {
+                val searchedItems = if (searchQuery.isNotBlank()) {
+                    itemsToShow.filter { item ->
+                        item.title.contains(searchQuery, ignoreCase = true) ||
+                        item.safeDescription.contains(searchQuery, ignoreCase = true) ||
+                        item.category.contains(searchQuery, ignoreCase = true)
+                    }
+                } else {
+                    itemsToShow
+                }
+
+                if (searchedItems.isEmpty()) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No items found in this category",
+                            text = if (searchQuery.isNotBlank()) "No results for \"$searchQuery\"" else "No items found in this category",
                             color = TextSub,
-                            fontSize = 16.sp
+                            fontSize = 14.sp
                         )
                     }
                 } else {
@@ -121,7 +142,7 @@ fun ExploreScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(itemsToShow, key = { it.id }) { video ->
+                        items(searchedItems, key = { it.id }) { video ->
                             PremiumVideoCard(
                                 video = video,
                                 onClick = { onVideoSelected(video) },
