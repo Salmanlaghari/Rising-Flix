@@ -62,6 +62,13 @@ class ContentRepository(private val apiService: ApiService) {
             null
         }
 
+        // TheMovieBox content FIRST so it appears at the top of the app
+        val themovieboxContent = try {
+            TheMovieBoxContent.fetchContent()
+        } catch (e: Exception) {
+            null
+        }
+
         // Merge order: themoviebox first, then auto, then github
         val merged = mergeContent(themovieboxContent, autoContent)
         val finalMerged = mergeContent(merged, githubContent)
