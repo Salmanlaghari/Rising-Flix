@@ -110,7 +110,7 @@ object TheMovieBoxContent {
         }
     }
 
-    private fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
+    private suspend fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
         try {
             val inputStream = context.assets.open("themoviebox_content.json")
             val json = inputStream.bufferedReader().use { it.readText() }
