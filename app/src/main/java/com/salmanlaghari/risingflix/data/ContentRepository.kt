@@ -39,6 +39,13 @@ class ContentRepository(private val apiService: ApiService) {
             return@withContext cachedContentList!!
         }
 
+        // TheMovieBox content FIRST so it appears at the top of the app
+        val themovieboxContent = try {
+            TheMovieBoxContent.fetchContent()
+        } catch (e: Exception) {
+            null
+        }
+
         // AutoContentManager fetches everything automatically — no API key needed
         // Sources: Archive.org (60K+ music, movies), Blender Foundation, Google sample bucket
         val autoContent = try {
@@ -55,15 +62,16 @@ class ContentRepository(private val apiService: ApiService) {
             null
         }
 
-        // Merge auto + github + themoviebox content
+        // TheMovieBox content FIRST so it appears at the top of the app
         val themovieboxContent = try {
             TheMovieBoxContent.fetchContent()
         } catch (e: Exception) {
             null
         }
 
-        val merged = mergeContent(autoContent, githubContent)
-        val finalMerged = mergeContent(merged, themovieboxContent)
+        // Merge order: themoviebox first, then auto, then github
+        val merged = mergeContent(themovieboxContent, autoContent)
+        val finalMerged = mergeContent(merged, githubContent)
         cachedContentList = finalMerged
         finalMerged
     }
