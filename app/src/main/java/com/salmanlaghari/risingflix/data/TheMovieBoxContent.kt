@@ -40,14 +40,12 @@ object TheMovieBoxContent {
             val allItems = mutableListOf<MovieItem>()
             val processedSubjectIds = mutableSetOf<String>()
 
-            // Scan all arrays in the NUXXT_DATA for content items
             fun scanForContent(obj: JsonElement) {
                 if (obj.isJsonArray) {
                     val arr = obj.asJsonArray
                     if (arr.size() > 0 && arr[0].isJsonObject) {
                         val first = arr[0].asJsonObject
                         if (first.has("subjectId") && first.has("subject")) {
-                            // This is a content array
                             val categoryName = extractCategoryName(arr)
                             val itemsList = mutableListOf<MovieItem>()
 
@@ -83,7 +81,6 @@ object TheMovieBoxContent {
                             return
                         }
                     }
-                    // Recursively scan array elements
                     for (i in 0 until arr.size()) {
                         scanForContent(arr[i])
                     }
@@ -114,8 +111,6 @@ object TheMovieBoxContent {
     }
 
     private fun extractCategoryName(arr: JsonArray): String {
-        // Try to find a category name from the array context
-        // Look for objects with "title" that might be section headers
         for (i in 0 until arr.size()) {
             val item = arr[i]
             if (item.isJsonObject) {
@@ -148,7 +143,6 @@ object TheMovieBoxContent {
         val sCountry = resolveString(subject["countryName"], jsonArray) ?: ""
         val sDuration = resolveString(subject["duration"], jsonArray) ?: "120 min"
 
-        // Resolve cover URL
         var sCover = ""
         if (subject.has("cover")) {
             val coverRef = subject["cover"]
