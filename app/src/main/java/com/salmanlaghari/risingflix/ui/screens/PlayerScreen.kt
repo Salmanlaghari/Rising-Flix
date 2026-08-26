@@ -53,7 +53,7 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail") || videoDetails.videoUrl.contains("hdmoviescloud.com")
+    val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail") || videoDetails.videoUrl.contains("hdmoviescloud.com") || videoDetails.videoUrl.contains("themoviebox.xyz")
 
     // Start playing current video safely
     LaunchedEffect(videoDetails.id) {

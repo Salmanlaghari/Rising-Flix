@@ -16,7 +16,7 @@ interface ContentSource {
     suspend fun fetchContent(): ContentResponse?
 }
 
-class ContentRepository(private val apiService: ApiService) {
+class ContentRepository(private val apiService: ApiService, private val context: android.content.Context) {
 
     // In-memory caching
     private var cachedContentList: ContentResponse? = null
@@ -39,6 +39,13 @@ class ContentRepository(private val apiService: ApiService) {
             return@withContext cachedContentList!!
         }
 
+        // TheMovieBox content FIRST so it appears at the top of the app
+        val themovieboxContent = try {
+            TheMovieBoxContent.fetchContent(context) ?: getFallbackContentList()
+        } catch (e: Exception) {
+            getFallbackContentList()
+        }
+
         // AutoContentManager fetches everything automatically — no API key needed
         // Sources: Archive.org (60K+ music, movies), Blender Foundation, Google sample bucket
         val autoContent = try {
@@ -55,10 +62,11 @@ class ContentRepository(private val apiService: ApiService) {
             null
         }
 
-        // Merge auto + github content
-        val merged = mergeContent(autoContent, githubContent)
-        cachedContentList = merged
-        merged
+        // Merge order: themoviebox first, then auto, then github
+        val merged = mergeContent(themovieboxContent, autoContent)
+        val finalMerged = mergeContent(merged, githubContent)
+        cachedContentList = finalMerged
+        finalMerged
     }
 
     private fun mergeContent(primary: ContentResponse, secondary: ContentResponse?): ContentResponse {
