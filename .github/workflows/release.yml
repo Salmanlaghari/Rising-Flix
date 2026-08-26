@@ -14,6 +14,9 @@ jobs:
   build:
     name: Build Signed Production APK & AAB
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
 
     steps:
       - name: Checkout Code Repository
