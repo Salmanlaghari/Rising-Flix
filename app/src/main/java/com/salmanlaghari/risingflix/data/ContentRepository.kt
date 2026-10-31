@@ -112,7 +112,22 @@ class ContentRepository(private val apiService: ApiService, private val context:
     private fun mergeContent(primary: ContentResponse, secondary: ContentResponse?): ContentResponse {
         if (secondary == null) return primary
 
-        val allCategories = primary.categories.toMutableList()
+        val canonicalUrls = secondary.categories
+            .filterNot { it.name.equals("Short Clips", ignoreCase = true) || it.name.equals("Provider Listings", ignoreCase = true) }
+            .flatMap { it.items }
+            .map { it.videoUrl }
+            .filter { it.isNotBlank() }
+            .toSet()
+        val allCategories = primary.categories.mapNotNull { category ->
+            if (category.name.equals("Short Clips", ignoreCase = true) ||
+                category.name.equals("Provider Listings", ignoreCase = true)
+            ) {
+                val remaining = category.items.filterNot { it.videoUrl in canonicalUrls }
+                remaining.takeIf { it.isNotEmpty() }?.let { category.copy(items = it) }
+            } else {
+                category
+            }
+        }.toMutableList()
         for (srcCat in secondary.categories) {
             val existingIdx = allCategories.indexOfFirst { it.name.equals(srcCat.name, ignoreCase = true) }
             if (existingIdx != -1) {
@@ -150,6 +165,10 @@ class ContentRepository(private val apiService: ApiService, private val context:
         val secondaryUrl = secondary.videoUrl.trim()
         if (primaryUrl.isBlank()) return secondary
         if (secondaryUrl.isBlank()) return primary
+        if (primaryUrl == secondaryUrl &&
+            (primary.actualDurationSeconds == null || primary.actualDurationSeconds <= 0) &&
+            (secondary.actualDurationSeconds ?: 0) > 0
+        ) return secondary
         if (PlaybackUrlResolver.isEmbeddedPage(primaryUrl) && !PlaybackUrlResolver.isEmbeddedPage(secondaryUrl)) {
             return secondary
         }
@@ -172,11 +191,11 @@ class ContentRepository(private val apiService: ApiService, private val context:
                 cachedTrendingMovies = trending.items
                 return@withContext trending.items
             }
-            val response = CatalogResolver.filterFeatureItems(
+            val response = CatalogResolver.filterEligibleItems(
                 try { apiService.getTrendingMovies() } catch (e: Exception) { emptyList() }
             )
-            val localFeatures = CatalogResolver.filterFeatureItems(list.categories.flatMap { it.items })
-            cachedTrendingMovies = response.ifEmpty { localFeatures.take(20) }
+            val localItems = CatalogResolver.filterEligibleItems(list.categories.flatMap { it.items })
+            cachedTrendingMovies = response.ifEmpty { localItems.take(20) }
             cachedTrendingMovies!!
         } catch (e: Exception) {
             cachedTrendingMovies ?: emptyList()
@@ -187,15 +206,16 @@ class ContentRepository(private val apiService: ApiService, private val context:
         if (!forceRefresh && cachedPopularDramas != null) return@withContext cachedPopularDramas!!
         try {
             val list = getContentList(forceRefresh)
-            val dramas = list.categories.firstOrNull {
+            val dramas = list.categories.filter {
                 it.name.contains("Drama", ignoreCase = true) ||
-                it.name.contains("Fantasy", ignoreCase = true)
+                    it.name.contains("Fantasy", ignoreCase = true) ||
+                    it.name.contains("TV Series", ignoreCase = true)
+            }.flatMap { it.items }
+            if (dramas.isNotEmpty()) {
+                cachedPopularDramas = CatalogResolver.filterEligibleItems(dramas).distinctBy { it.videoUrl.ifBlank { it.id } }
+                return@withContext cachedPopularDramas!!
             }
-            if (dramas != null && dramas.items.isNotEmpty()) {
-                cachedPopularDramas = dramas.items
-                return@withContext dramas.items
-            }
-            val response = CatalogResolver.filterFeatureItems(
+            val response = CatalogResolver.filterEligibleItems(
                 try { apiService.getPopularDramas() } catch (e: Exception) { emptyList() }
             )
             cachedPopularDramas = response

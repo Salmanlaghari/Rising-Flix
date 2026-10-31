@@ -22,9 +22,11 @@ data class VideoDetails(
 ) {
     val isShortClip: Boolean get() = contentType == "short_clip" ||
         actualDurationSeconds?.let { it > 0 && it < CatalogResolver.MIN_FEATURE_SECONDS } == true
+    val isRuntimeUnverified: Boolean get() = contentType == "runtime_unverified"
     val displayTitle: String get() = when {
         isShortClip -> "$title (short clip)"
         contentType == "details_only" -> "$title (details only)"
+        isRuntimeUnverified -> "$title (runtime unverified)"
         else -> title
     }
 }

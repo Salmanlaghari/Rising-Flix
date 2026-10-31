@@ -159,62 +159,44 @@ def apply_verified_durations(
     results: dict[str, dict[str, Any]],
     min_feature_seconds: int = DEFAULT_MIN_FEATURE_SECONDS,
 ) -> tuple[dict[str, Any], dict[str, int]]:
-    """Write measured runtimes, separate short clips, and drop only unverified streams."""
-    summary = {
-        "featureRowsKept": 0,
-        "shortClipsKept": 0,
-        "duplicateShortRowsCollapsed": 0,
-        "unverifiedRowsRemoved": 0,
-    }
-    categories = []
-    short_clips: dict[str, dict[str, Any]] = {}
-    for category in data.get("categories", []):
-        kept_items = []
-        for item in category.get("items", []):
-            url = str(item.get("videoUrl") or "").strip()
-            actual = results.get(url, {}).get("actualDurationSeconds")
-            if actual is None or int(actual) <= 0:
-                summary["unverifiedRowsRemoved"] += 1
-                continue
-            verified = dict(item)
-            verified["actualDurationSeconds"] = int(actual)
-            verified["duration"] = format_duration_seconds(actual)
+    """Annotate every catalog row from measured media; never hide shorts or unprobed entries."""
+    summary = {"featureRows": 0, "shortClipRows": 0, "unverifiedRows": 0}
+
+    def annotate(item: dict[str, Any], count_summary: bool = True) -> dict[str, Any]:
+        updated = dict(item)
+        url = str(item.get("videoUrl") or "").strip()
+        actual = results.get(url, {}).get("actualDurationSeconds")
+        if actual is None or int(actual) <= 0:
+            updated["actualDurationSeconds"] = None
+            updated["duration"] = "Runtime unverified"
+            updated["contentType"] = "runtime_unverified"
+            if count_summary:
+                summary["unverifiedRows"] += 1
+        else:
+            actual = int(actual)
+            updated["actualDurationSeconds"] = actual
+            updated["duration"] = format_duration_seconds(actual)
             if actual >= min_feature_seconds:
-                verified["contentType"] = "feature"
-                kept_items.append(verified)
-                summary["featureRowsKept"] += 1
+                updated["contentType"] = "feature"
+                if count_summary:
+                    summary["featureRows"] += 1
             else:
-                verified["contentType"] = "short_clip"
-                verified["category"] = "Short Clips"
-                if url in short_clips:
-                    summary["duplicateShortRowsCollapsed"] += 1
-                else:
-                    short_clips[url] = verified
-                    summary["shortClipsKept"] += 1
-        if kept_items:
-            updated_category = dict(category)
-            updated_category["items"] = kept_items
-            categories.append(updated_category)
+                updated["contentType"] = "short_clip"
+                if count_summary:
+                    summary["shortClipRows"] += 1
+        return updated
 
-    if short_clips:
-        categories.append({
-            "id": "cat_short_clips",
-            "name": "Short Clips",
-            "icon": "video",
-            "items": list(short_clips.values()),
-        })
+    categories = []
+    for category in data.get("categories", []):
+        updated_category = dict(category)
+        updated_category["items"] = [annotate(item) for item in category.get("items", [])]
+        categories.append(updated_category)
 
-    featured = data.get("featured")
-    featured_url = str((featured or {}).get("videoUrl") or "").strip()
-    featured_actual = results.get(featured_url, {}).get("actualDurationSeconds")
-    if featured_actual is not None and featured_actual >= min_feature_seconds:
-        featured = dict(featured)
-        featured["actualDurationSeconds"] = int(featured_actual)
-        featured["duration"] = format_duration_seconds(featured_actual)
-        featured["contentType"] = "feature"
-    else:
+    featured_source = data.get("featured")
+    featured = annotate(featured_source, count_summary=False) if isinstance(featured_source, dict) else None
+    if featured is not None and featured.get("contentType") != "feature":
         featured = next(
-            (item for category in categories if "movie" in category.get("name", "").lower() for item in category["items"]),
+            (item for category in categories for item in category["items"] if item.get("contentType") == "feature"),
             None,
         )
 
@@ -243,22 +225,27 @@ def verify_raw_items(
     timeout_seconds: int = 15,
     min_feature_seconds: int = DEFAULT_MIN_FEATURE_SECONDS,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Shared import pipeline: measure direct streams, classify shorts, fail closed on errors."""
+    """Shared import pipeline: measure URLs and retain rows even when runtime cannot be verified."""
     data = {"featured": None, "categories": [{"name": "Raw", "items": items}]}
     streams = collect_streams(data)
     results = probe_streams(streams, workers=workers, timeout_seconds=timeout_seconds)
     report = build_audit_report(streams, results, min_feature_seconds, source_file="data/moviebox_raw.json")
-    verified = []
+    annotated = []
     for item in items:
         url = str(item.get("videoUrl") or "").strip()
         actual = results.get(url, {}).get("actualDurationSeconds")
+        copy = dict(item)
         if actual is not None and int(actual) > 0:
-            copy = dict(item)
-            copy["actualDurationSeconds"] = int(actual)
+            actual = int(actual)
+            copy["actualDurationSeconds"] = actual
             copy["duration"] = format_duration_seconds(actual)
             copy["contentType"] = "feature" if actual >= min_feature_seconds else "short_clip"
-            verified.append(copy)
-    return verified, report
+        else:
+            copy["actualDurationSeconds"] = None
+            copy["duration"] = "Runtime unverified"
+            copy["contentType"] = "runtime_unverified"
+        annotated.append(copy)
+    return annotated, report
 
 
 def main() -> None:
@@ -267,8 +254,8 @@ def main() -> None:
     parser.add_argument("--output", default="data/stream_duration_audit.json", help="JSON audit report path")
     parser.add_argument("--workers", type=int, default=4, help="bounded concurrent ffprobe calls (1-8)")
     parser.add_argument("--timeout", type=int, default=15, help="per-stream timeout in seconds")
-    parser.add_argument("--min-feature-minutes", type=int, default=45, help="minimum measured duration to retain")
-    parser.add_argument("--apply", action="store_true", help="replace input with verified feature-length streams")
+    parser.add_argument("--min-feature-minutes", type=int, default=45, help="minimum measured duration to classify as a feature")
+    parser.add_argument("--apply", action="store_true", help="annotate all rows with measured or unverified runtime data")
     parser.add_argument("--apply-report", help="reuse a previously saved audit report instead of probing again")
     args = parser.parse_args()
 

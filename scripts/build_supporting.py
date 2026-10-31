@@ -41,24 +41,17 @@ def main():
             "quality": it.get("quality", "HD"),
             "actualDurationSeconds": it.get("actualDurationSeconds"),
             "contentType": it.get("contentType") or (
-                "feature" if (it.get("actualDurationSeconds") or 0) >= 45 * 60 else "short_clip"
+                "runtime_unverified" if not (it.get("actualDurationSeconds") or 0)
+                else "feature" if it["actualDurationSeconds"] >= 45 * 60 else "short_clip"
             ),
         }
-
-    def is_feature(it):
-        seconds = it.get("actualDurationSeconds")
-        return seconds is not None and seconds >= 45 * 60
 
     # Trending: prefer recent + sd/hd; take 30
     def trending_score(it):
         y = int(it.get("year")) if str(it.get("year","")).isdigit() else 2000
         q = 2 if "-sd.mp4" in it["videoUrl"] else 1
         return (y, q)
-    trending = [strip(it) for it in sorted(
-        (it for it in all_items if is_feature(it)),
-        key=trending_score,
-        reverse=True,
-    )[:30]]
+    trending = [strip(it) for it in sorted(all_items, key=trending_score, reverse=True)[:30]]
     json.dump(trending, open("trending.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print(f"[*] trending.json: {len(trending)} items")
 
@@ -66,12 +59,13 @@ def main():
     pool = []
     for nm in ["Drama", "Sci-Fi & Fantasy", "TV Series"]:
         if nm in by_name:
-            pool += [it for it in by_name[nm]["items"] if is_feature(it)]
+            pool += by_name[nm]["items"]
     # dedupe
     seen2 = set(); popd = []
     for it in pool:
-        if it["id"] in seen2: continue
-        seen2.add(it["id"]); popd.append(strip(it))
+        key = it.get("videoUrl") or it["id"]
+        if key in seen2: continue
+        seen2.add(key); popd.append(strip(it))
     popd = popd[:25]
     json.dump(popd, open("popular_dramas.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print(f"[*] popular_dramas.json: {len(popd)} items")

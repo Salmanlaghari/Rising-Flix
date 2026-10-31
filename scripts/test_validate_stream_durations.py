@@ -26,7 +26,7 @@ class ValidateStreamDurationsTest(unittest.TestCase):
         }
         self.assertEqual({url}, set(collect_streams(content)))
 
-    def test_raw_import_keeps_measured_clips_classified_and_drops_probe_failures(self):
+    def test_raw_import_retains_measured_clips_and_probe_failures(self):
         items = [
             {"id": "full", "title": "Full", "category": "Movies", "videoUrl": "https://cdn.example.org/full.mp4"},
             {"id": "clip", "title": "Clip", "category": "Movies", "videoUrl": "https://cdn.example.org/clip.mp4"},
@@ -39,13 +39,14 @@ class ValidateStreamDurationsTest(unittest.TestCase):
         }
 
         with patch("validate_stream_durations.probe_streams", return_value=probe_results):
-            measured, report = verify_raw_items(items)
+            annotated, report = verify_raw_items(items)
 
-        self.assertEqual(["full", "clip"], [item["id"] for item in measured])
-        self.assertEqual(["feature", "short_clip"], [item["contentType"] for item in measured])
+        self.assertEqual(["full", "clip", "unknown"], [item["id"] for item in annotated])
+        self.assertEqual(["feature", "short_clip", "runtime_unverified"], [item["contentType"] for item in annotated])
+        self.assertEqual("Runtime unverified", annotated[2]["duration"])
         self.assertEqual(1, report["summary"]["unverified"])
 
-    def test_catalog_separates_features_from_measured_short_clips_and_drops_unverified(self):
+    def test_audit_preserves_all_rows_and_original_categories(self):
         full_url = "https://cdn.example.org/full.mp4"
         short_url = "https://cdn.example.org/short.mp4"
         unknown_url = "https://cdn.example.org/unknown.mp4"
@@ -76,27 +77,18 @@ class ValidateStreamDurationsTest(unittest.TestCase):
 
         updated, summary = apply_verified_durations(content, results)
 
-        movies = updated["categories"][0]["items"]
-        clips = updated["categories"][-1]
-        self.assertEqual(["full"], [item["id"] for item in movies])
-        self.assertEqual(8_040, movies[0]["actualDurationSeconds"])
-        self.assertEqual("2 h 14 min", movies[0]["duration"])
-        self.assertEqual("Short Clips", clips["name"])
-        self.assertEqual(1, len(clips["items"]))
-        self.assertEqual("short", clips["items"][0]["id"])
-        self.assertEqual("short_clip", clips["items"][0]["contentType"])
-        self.assertEqual(138, clips["items"][0]["actualDurationSeconds"])
-        self.assertEqual("2 min 18 sec", clips["items"][0]["duration"])
-        self.assertEqual(
-            {
-                "featureRowsKept": 1,
-                "shortClipsKept": 1,
-                "duplicateShortRowsCollapsed": 1,
-                "unverifiedRowsRemoved": 1,
-            },
-            summary,
-        )
+        self.assertEqual(["Movies", "Drama"], [category["name"] for category in updated["categories"]])
+        movies, dramas = updated["categories"]
+        self.assertEqual(["full", "short", "unknown"], [item["id"] for item in movies["items"]])
+        self.assertEqual(["short-copy"], [item["id"] for item in dramas["items"]])
+        self.assertEqual(8_040, movies["items"][0]["actualDurationSeconds"])
+        self.assertEqual("2 h 14 min", movies["items"][0]["duration"])
+        self.assertEqual("short_clip", movies["items"][1]["contentType"])
+        self.assertEqual(138, movies["items"][1]["actualDurationSeconds"])
+        self.assertEqual("2 min 18 sec", movies["items"][1]["duration"])
+        self.assertEqual("Runtime unverified", movies["items"][2]["duration"])
         self.assertEqual("full", updated["featured"]["id"])
+        self.assertEqual({"featureRows": 1, "shortClipRows": 2, "unverifiedRows": 1}, summary)
 
     def test_audit_distinguishes_short_feature_and_unverified_results(self):
         streams = {

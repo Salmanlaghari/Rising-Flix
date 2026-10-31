@@ -16,36 +16,36 @@ Welcome to **Rising Flix** — the premium cinematic video streaming hub designe
 
 ## 🔄 MovieBox.pk Content Sync
 
-Rising Flix imports candidate media URLs and title metadata from MovieBox.pk. A title's reported runtime is not proof that its linked stream is a full movie: catalog generation measures each unique direct MP4 with `ffprobe`. Only media at least 45 minutes long enters feature-film feeds; shorter measured videos are kept separately as clearly labeled short clips.
+Rising Flix imports candidate media URLs and title metadata from MovieBox.pk. A title's reported runtime is not proof that its linked stream is a full movie: catalog generation measures each unique direct MP4 with `ffprobe` and uses the measured length when available, while keeping the complete title catalog visible.
 
 ### Runtime validation
 - `actualDurationSeconds` and the displayed duration come from `ffprobe` reading the direct media container, not the title-page's claimed runtime.
-- Audit of the currently tracked feed: **300/300** unique MP4 URLs had measurable durations, but only **1** was at least 45 minutes; the other **299** are classified as short clips rather than full movies.
-- Streams measured below 45 minutes are moved to a separate **Short Clips** section, labeled “short clip,” and shown with their actual duration; they do not enter Movies, featured, trending, or full-movie matching. Streams that cannot be measured are not playable. Provider-only detail pages may remain discoverable under Provider Listings, marked runtime-unverified.
+- Audit of the currently tracked feed: **300/300** unique MP4 URLs had measurable durations, but only **1** was at least 45 minutes; the other **299** are marked as short clips rather than full movies. All **446** original rows across eight genre/type categories are retained.
+- Measured clips stay in their original Movies, genre, TV, or Animation categories; cards and the player identify them as **Short Clip** and show the actual measured duration. Direct streams without a successful measurement stay visible and playable but are marked **Runtime unverified** and never display the title-page runtime as if it were confirmed. Provider-only pages are marked details-only, not playable media.
 - `data/stream_duration_audit.json` records each unique stream URL, its measured duration (or probe failure), and whether it passed the feature-length threshold.
 - A successful duration probe confirms the media's reported length at import time; it does not guarantee the upstream host will remain reachable or allow playback later.
 
 ### Files produced
 - `content.json` — primary catalog consumed by the app (`featured` + `categories[]`), schema matches `MovieItem.kt` / `ContentResponse.kt`.
-- `trending.json` — up to 30 measured feature-length titles (powers the Trending screen / `getTrendingMovies()`).
-- `popular_dramas.json` — up to 25 measured feature-length drama/fantasy/TV titles (powers `getPopularDramas()`).
-- `search.json` — searchable index of measured feature films and separately labeled short clips (`SearchResponse { results[] }` / `searchMovies()`).
+- `trending.json` — up to 30 entries from the complete catalog, with measured short clips labeled (powers the Trending screen / `getTrendingMovies()`).
+- `popular_dramas.json` — up to 25 Drama/Fantasy/TV entries from the complete catalog, with measured short clips labeled (powers `getPopularDramas()`).
+- `search.json` — searchable index of all unique catalog streams, including measured clips and runtime-unverified entries (`SearchResponse { results[] }` / `searchMovies()`).
 - `data/moviebox_content.json` — flat catalog reference, including measured runtime fields.
 - `app/src/main/assets/verified_content.json` — packaged measured catalog for first launch and offline use, including before the updated remote feed is published.
 
 ### How the sync works
 1. **Collect** detail-page links from MovieBox listing pages (`/web/movie`, `/web/tv-series`, `/web/animated-series`).
 2. **Scrape** candidate `contentUrl` values and descriptive metadata from embedded **schema.org `VideoObject` JSON-LD**; its `duration` is treated as unverified metadata.
-3. **Probe** each unique candidate stream with bounded-concurrency `ffprobe`; fail closed on probe errors, classify runtimes below 45 minutes as short clips, and never use those clips as full-movie matches.
-4. **Transform** measured feature-length streams into movie/genre feeds and short streams into a separate `Short Clips` category, then generate feature-only trending/drama feeds and a searchable index with measured runtimes.
+3. **Probe** each unique candidate stream with bounded-concurrency `ffprobe`; mark runtimes below 45 minutes as short clips, and keep probe failures visible as runtime-unverified instead of deleting catalog entries.
+4. **Transform** every candidate into its original movie/genre/TV catalog rows with an explicit content/runtime label. Only a measured feature-length stream can be used to match a provider detail page to a full movie; supporting feeds retain all entries with their labels.
 
 The scripts live under `scripts/` (`moviebox_scraper.py`, `validate_stream_durations.py`, `build_content.py`, `build_supporting.py`). `build_content.py` requires `ffprobe` and writes the per-URL report to `data/stream_duration_audit.json`.
 
 ## Automatic in-app catalog refresh
 
-When the app starts, it schedules a one-time catch-up refresh and a unique WorkManager job that refreshes the catalog about every 12 hours while a network connection is available. Android may defer background work to conserve battery, so the interval is approximate. The maintained catalog and live title listing are fetched concurrently; the home feed no longer waits on unrelated Archive.org metadata requests or inserts demo shorts and promo clips as feature movies. Direct streams require a measured runtime; under-45-minute items are moved to **Short Clips**, and title-page entries can reuse only a measured feature-length stream when title/year matching is unambiguous. Successful results are stored in the app's private `content_catalog_cache.json` file. Existing downloads and other app data are not modified.
+When the app starts, it schedules a one-time catch-up refresh and a unique WorkManager job that refreshes the catalog about every 12 hours while a network connection is available. Android may defer background work to conserve battery, so the interval is approximate. The maintained catalog and live title listing are fetched concurrently; the home feed no longer waits on unrelated Archive.org metadata requests or inserts demo shorts and promo clips as feature movies. All recognized direct streams can be attempted by Media3 regardless of whether their runtime was measured. Short clips show their measured duration and badge; unknown runtimes show “Runtime unverified.” Only a measured feature-length stream can be matched to a provider detail page. Successful results are stored in the app's private `content_catalog_cache.json` file. Existing downloads and other app data are not modified.
 
-If a refresh fails or the device is offline, the app keeps the last successful catalog and shows it immediately; a new install uses the packaged measured catalog before falling back to the title-only bundled listing. Media3 plays measured direct streams, including short clips only from the clearly labeled **Short Clips** section and with their actual runtime shown; unverified streams are blocked. A title that has only a provider details page is identified as not directly playable, with an option to open that page in the browser; the page is not presented as a playing video. A duration probe does not guarantee the upstream stream will remain reachable or allow playback on the device.
+If a refresh fails or the device is offline, the app keeps the last successful catalog and shows it immediately; a new install uses the packaged complete catalog before falling back to the bundled title listing. Provider details pages are identified as not directly playable, with an option to open that page in the browser; the page is not presented as a playing video. A duration probe does not guarantee the upstream host will remain reachable or allow playback on the device.
 
 ---
 

@@ -45,7 +45,7 @@ def to_movie_item(it, prefix, idx):
     return {
         "id": slug_id(prefix, it["title"], idx),
         "title": it["title"],
-        "category": "Short Clips" if it.get("contentType") == "short_clip" else it["category"],
+        "category": it["category"],
         "videoUrl": vid,
         "thumbnailUrl": poster,
         "backdrop": backdrop,
@@ -54,8 +54,8 @@ def to_movie_item(it, prefix, idx):
         "quality": quality_from_url(vid),
         "year": it.get("year") or "2025",
         "duration": dur,
-        "actualDurationSeconds": it["actualDurationSeconds"],
-        "contentType": it.get("contentType", "feature"),
+        "actualDurationSeconds": it.get("actualDurationSeconds"),
+        "contentType": it.get("contentType", "runtime_unverified"),
         "source": "moviebox.pk",
         "detailUrl": it.get("detailUrl", ""),
     }
@@ -67,15 +67,13 @@ def main():
     write_json_atomic(Path("data/stream_duration_audit.json"), audit)
     print(f"[*] Actual-runtime audit: {json.dumps(audit['summary'], sort_keys=True)}")
     feature_items = [x for x in raw if x.get("contentType") == "feature"]
-    short_items = sorted(
-        (x for x in raw if x.get("contentType") == "short_clip"),
-        key=lambda item: item["title"].lower(),
-    )
-    print(f"[*] Measured media: {len(feature_items)} feature-length, {len(short_items)} short clips; unverified streams excluded")
+    short_items = [x for x in raw if x.get("contentType") == "short_clip"]
+    unverified_items = [x for x in raw if x.get("contentType") == "runtime_unverified"]
+    print(f"[*] Retaining {len(raw)} catalog rows: {len(feature_items)} feature-length, {len(short_items)} short clips, {len(unverified_items)} runtime-unverified")
 
     # Sort: Movies first, then TV Series, then Animation; within each by title
     cat_order = ["Movies", "TV Series", "Animation"]
-    by_cat = {c: [x for x in feature_items if x["category"] == c] for c in cat_order}
+    by_cat = {c: [x for x in raw if x["category"] == c] for c in cat_order}
     for c in cat_order:
         by_cat[c].sort(key=lambda x: x["title"].lower())
         print(f"    {c}: {len(by_cat[c])}")
@@ -157,24 +155,15 @@ def main():
     if an_items:
         categories.append({"id": "cat_animation", "name": "Animation", "icon": "sparkles", "items": an_items})
 
-    # Shorter measured media are retained only in a clearly labeled section.
-    if short_items:
-        categories.append({
-            "id": "cat_short_clips",
-            "name": "Short Clips",
-            "icon": "video",
-            "items": [to_movie_item(it, "clip", i + 1) for i, it in enumerate(short_items)],
-        })
-
     # ---------- Featured item ----------
     # Pick a high-profile title for featured: prefer a recent movie with sd quality
     featured_raw = None
-    for it in by_cat["Movies"]:
+    for it in (item for item in by_cat["Movies"] if item.get("contentType") == "feature"):
         if "-sd.mp4" in it["videoUrl"] and it.get("year") and it["year"].isdigit() and int(it["year"]) >= 2020:
             featured_raw = it
             break
-    if not featured_raw and by_cat["Movies"]:
-        featured_raw = by_cat["Movies"][0]
+    if not featured_raw and feature_items:
+        featured_raw = feature_items[0]
     featured = to_movie_item(featured_raw, "feat", 1) if featured_raw else None
 
     content = {

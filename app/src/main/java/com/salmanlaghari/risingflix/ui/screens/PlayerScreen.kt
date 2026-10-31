@@ -55,17 +55,15 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isProviderPage = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl)
-    val isPlayableMedia = CatalogResolver.isVerifiedDirectStream(
-        videoDetails.videoUrl,
-        videoDetails.actualDurationSeconds
-    )
+    val isProviderPage = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl) ||
+        videoDetails.contentType == "details_only"
+    val isPlayableMedia = CatalogResolver.isPlayableDirectStream(videoDetails.videoUrl)
     val measuredRuntime = videoDetails.actualDurationSeconds?.takeIf { it > 0 }
         ?.let(CatalogResolver::formatDurationSeconds)
-    val runtimeLabel = if (videoDetails.isShortClip) {
-        "Short clip · ${measuredRuntime ?: "Runtime unverified"}"
-    } else {
-        measuredRuntime ?: "Runtime unverified"
+    val runtimeLabel = when {
+        videoDetails.isShortClip -> "Short clip · ${measuredRuntime ?: "Runtime unverified"}"
+        videoDetails.isRuntimeUnverified -> "Runtime unverified"
+        else -> measuredRuntime ?: "Runtime unverified"
     }
     var playbackError by remember(videoDetails.id) { mutableStateOf<String?>(null) }
     var isBuffering by remember(videoDetails.id) { mutableStateOf(false) }
@@ -216,15 +214,6 @@ fun PlayerScreen(
                     }
                 }
             } else if (!isPlayableMedia) {
-                val measuredSeconds = videoDetails.actualDurationSeconds
-                val message = when {
-                    PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl) && measuredSeconds != null && measuredSeconds > 0 &&
-                        measuredSeconds < CatalogResolver.MIN_FEATURE_SECONDS ->
-                        "Measured stream duration is ${CatalogResolver.formatDurationSeconds(measuredSeconds)}. This video is a short clip, not the full movie."
-                    PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl) ->
-                        "The stream runtime has not been verified, so it will not be presented as a full movie."
-                    else -> "No verified feature-length video stream is available for this title."
-                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -236,9 +225,9 @@ fun PlayerScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
                     }
-                    Text("Not playable as a full movie", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("No playable direct stream", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(message, color = TextSub, fontSize = 13.sp)
+                    Text("This catalog entry has no supported direct video URL.", color = TextSub, fontSize = 13.sp)
                 }
             } else {
                 // ExoPlayer View

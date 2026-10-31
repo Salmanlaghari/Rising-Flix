@@ -3,72 +3,38 @@ package com.salmanlaghari.risingflix.data
 import java.text.Normalizer
 import java.util.Locale
 
-/** Catalog transformations that classify media from measured stream duration, never title metadata. */
+/** Catalog transformations that use measured durations when known without hiding catalog entries. */
 internal object CatalogResolver {
     const val MIN_FEATURE_SECONDS = 45 * 60
 
     fun isVerifiedDirectStream(url: String, actualDurationSeconds: Int?): Boolean =
         PlaybackUrlResolver.isDirectStream(url) && actualDurationSeconds != null && actualDurationSeconds > 0
 
+    fun isPlayableDirectStream(url: String): Boolean = PlaybackUrlResolver.isDirectStream(url)
+
     fun isVerifiedFeatureStream(url: String, actualDurationSeconds: Int?): Boolean =
         isVerifiedDirectStream(url, actualDurationSeconds) && actualDurationSeconds!! >= MIN_FEATURE_SECONDS
 
     fun isEligibleCatalogItem(item: MovieItem): Boolean = classify(item) != null
 
-    /** Retain measured short media and page-only records, but explicitly classify them. */
+    /** Keep the complete catalog in its original categories and annotate stream certainty. */
     fun filterEligibleItems(items: List<MovieItem>): List<MovieItem> = items.mapNotNull(::classify)
 
-    /** Used by feeds that must contain only feature-length movies, not clips or detail pages. */
+    /** Optional strict feature-only view; normal catalog and browse feeds retain all items. */
     fun filterFeatureItems(items: List<MovieItem>): List<MovieItem> =
         items.mapNotNull(::classify).filter { it.contentType == "feature" }
 
     fun removeDemoAndShortForm(response: ContentResponse): ContentResponse {
-        val featureCategories = mutableListOf<Category>()
-        val shortClips = linkedMapOf<String, MovieItem>()
-        val providerListings = linkedMapOf<String, MovieItem>()
-
-        for (category in response.categories) {
-            val features = mutableListOf<MovieItem>()
-            for (item in category.items) {
-                val normalized = classify(item) ?: continue
-                when (normalized.contentType) {
-                    "feature" -> features += normalized
-                    "short_clip" -> shortClips.putIfAbsent(normalized.videoUrl, normalized)
-                    "details_only" -> providerListings.putIfAbsent(
-                        normalized.videoUrl.ifBlank { normalized.id }, normalized
-                    )
-                }
-            }
-            if (features.isNotEmpty() && !category.name.equals("Short Clips", ignoreCase = true) &&
-                !category.name.equals("Provider Listings", ignoreCase = true)
-            ) {
-                featureCategories += category.copy(items = features)
-            }
+        val categories = response.categories.mapNotNull { category ->
+            val items = category.items.mapNotNull(::classify)
+            items.takeIf { it.isNotEmpty() }?.let { category.copy(items = it) }
         }
-
-        if (shortClips.isNotEmpty()) {
-            featureCategories += Category(
-                id = "cat_short_clips",
-                name = "Short Clips",
-                icon = "video",
-                items = shortClips.values.toList()
-            )
-        }
-        if (providerListings.isNotEmpty()) {
-            featureCategories += Category(
-                id = "cat_provider_listings",
-                name = "Provider Listings",
-                icon = "info",
-                items = providerListings.values.toList()
-            )
-        }
-
         val requestedFeatured = response.featured?.let(::classify)
             ?.takeIf { it.contentType == "feature" }
         val featured = requestedFeatured
-            ?: featureCategories.firstOrNull { it.name.equals("Movies", ignoreCase = true) }
+            ?: categories.firstOrNull { it.name.equals("Movies", ignoreCase = true) }
                 ?.items?.firstOrNull { it.contentType == "feature" }
-        return ContentResponse(featured = featured, categories = featureCategories)
+        return ContentResponse(featured = featured, categories = categories)
     }
 
     /**
@@ -144,13 +110,20 @@ internal object CatalogResolver {
     private fun classify(item: MovieItem): MovieItem? {
         if (item.id.startsWith("auto_", ignoreCase = true)) return null
         if (PlaybackUrlResolver.isEmbeddedPage(item.videoUrl)) {
-            return item.copy(contentType = "details_only", category = "Provider Listings")
+            return item.copy(contentType = "details_only")
         }
-        if (!isVerifiedDirectStream(item.videoUrl, item.actualDurationSeconds)) return null
-        return if (isVerifiedFeatureStream(item.videoUrl, item.actualDurationSeconds)) {
-            item.copy(contentType = "feature")
-        } else {
-            item.copy(contentType = "short_clip", category = "Short Clips")
+        if (!isPlayableDirectStream(item.videoUrl)) {
+            return if (PlaybackUrlResolver.isValidHttpUrl(item.videoUrl)) {
+                item.copy(contentType = "details_only")
+            } else {
+                null
+            }
+        }
+        val measuredSeconds = item.actualDurationSeconds?.takeIf { it > 0 }
+        return when {
+            measuredSeconds == null -> item.copy(contentType = "runtime_unverified")
+            measuredSeconds < MIN_FEATURE_SECONDS -> item.copy(contentType = "short_clip")
+            else -> item.copy(contentType = "feature")
         }
     }
 

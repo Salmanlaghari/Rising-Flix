@@ -116,6 +116,7 @@ fun PremiumVideoCard(
                         text = when {
                             video.isShortClip -> "SHORT CLIP"
                             video.contentType == "details_only" -> "DETAILS ONLY"
+                            video.isRuntimeUnverified -> "UNVERIFIED"
                             else -> video.safeQuality
                         },
                         color = TrueBlack,

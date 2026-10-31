@@ -2,6 +2,7 @@ package com.salmanlaghari.risingflix
 
 import com.google.gson.Gson
 import com.salmanlaghari.risingflix.data.ContentResponse
+import com.salmanlaghari.risingflix.data.MovieItem
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -73,6 +74,17 @@ class ContentResponseParsingTest {
         assertEquals("Sintel (short clip)", item.displayTitle)
         assertEquals("https://example.com/sintel.jpg", item.safePoster)
         assertEquals("2026", item.safeReleaseYear)
+    }
+
+    @Test
+    fun unverifiedRuntimeNeverDisplaysTheTitlePagesClaimedDuration() {
+        val item = Gson().fromJson(
+            """{"id":"unknown","title":"Unknown Film","duration":"2 h 14 m","videoUrl":"https://cdn.example.org/unknown.mp4","contentType":"runtime_unverified"}""",
+            MovieItem::class.java
+        )
+
+        assertEquals("Runtime unverified", item.safeDuration)
+        assertEquals("Unknown Film (runtime unverified)", item.displayTitle)
     }
 
     @Test

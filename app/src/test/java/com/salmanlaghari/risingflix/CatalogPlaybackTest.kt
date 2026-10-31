@@ -51,7 +51,7 @@ class CatalogPlaybackTest {
     }
 
     @Test
-    fun measuredShortStreamsAreLabeledAndSeparatedFromFeatureMovies() {
+    fun catalogPreservesCategoryAndLabelsMeasuredShortAndUnverifiedRuntime() {
         val feature = movie("feature", "https://cdn.example.org/feature.mp4")
             .copy(duration = "2 h 14 m", actualDurationSeconds = 8_040)
         val metadataOnlyShort = movie("metadata-short", "https://cdn.example.org/metadata-short.mp4")
@@ -71,23 +71,24 @@ class CatalogPlaybackTest {
             )
         )
 
-        val movies = result.categories.first { it.name == "Movies" }.items
-        val clips = result.categories.first { it.name == "Short Clips" }.items
-        val providerListings = result.categories.first { it.name == "Provider Listings" }.items
-        assertEquals(listOf("feature"), movies.map(MovieItem::id))
-        assertEquals(listOf("metadata-short"), clips.map(MovieItem::id))
-        assertEquals(listOf("page"), providerListings.map(MovieItem::id))
+        val movies = result.categories.single()
+        assertEquals("Movies", movies.name)
+        assertEquals(listOf("metadata-short", "unverified", "feature", "page"), movies.items.map(MovieItem::id))
         assertEquals("feature", result.featured?.id)
         assertEquals("2 h 14 min", feature.safeDuration)
         assertEquals("2 min 18 sec", metadataOnlyShort.safeDuration)
-        assertEquals("Metadata Short (short clip)", clips.single().displayTitle)
-        assertEquals("short_clip", clips.single().contentType)
-        assertEquals("page (details only)", providerListings.single().displayTitle)
+        assertEquals("Metadata Short (short clip)", movies.items[0].displayTitle)
+        assertEquals("short_clip", movies.items[0].contentType)
+        assertEquals("unverified (runtime unverified)", movies.items[1].displayTitle)
+        assertEquals("runtime_unverified", movies.items[1].contentType)
+        assertEquals("page (details only)", movies.items[3].displayTitle)
         assertEquals("Runtime unverified", detailPage.safeDuration)
         assertFalse(CatalogResolver.isVerifiedFeatureStream(metadataOnlyShort.videoUrl, metadataOnlyShort.actualDurationSeconds))
         assertFalse(CatalogResolver.isVerifiedFeatureStream(unverified.videoUrl, unverified.actualDurationSeconds))
         assertTrue(CatalogResolver.isVerifiedDirectStream(metadataOnlyShort.videoUrl, metadataOnlyShort.actualDurationSeconds))
-        assertFalse(CatalogResolver.isVerifiedDirectStream(unverified.videoUrl, unverified.actualDurationSeconds))
+        assertTrue(CatalogResolver.isPlayableDirectStream(metadataOnlyShort.videoUrl))
+        assertTrue(CatalogResolver.isPlayableDirectStream(unverified.videoUrl))
+        assertFalse(CatalogResolver.isPlayableDirectStream(detailPage.videoUrl))
         assertTrue(CatalogResolver.isVerifiedFeatureStream(feature.videoUrl, feature.actualDurationSeconds))
     }
 
