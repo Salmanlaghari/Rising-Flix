@@ -33,6 +33,7 @@ import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.data.VideoDetails
 import com.salmanlaghari.risingflix.data.VideoPlayerManager
+import com.salmanlaghari.risingflix.data.PlaybackUrlResolver
 import com.salmanlaghari.risingflix.data.DownloadManager
 import com.salmanlaghari.risingflix.data.DownloadStatus
 import com.salmanlaghari.risingflix.ui.components.PremiumVideoCard
@@ -53,18 +54,23 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail") || videoDetails.videoUrl.contains("hdmoviescloud.com") || videoDetails.videoUrl.contains("themoviebox.xyz")
+    val isWebViewMode = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl)
+    val isValidPlaybackUrl = PlaybackUrlResolver.isValidHttpUrl(videoDetails.videoUrl)
+    var playbackError by remember(videoDetails.id) { mutableStateOf<String?>(null) }
 
     // Start playing current video safely
     LaunchedEffect(videoDetails.id) {
-        if (!isWebViewMode && videoDetails.videoUrl.isNotEmpty()) {
+        if (!isWebViewMode && isValidPlaybackUrl) {
             try {
+                playbackError = null
                 VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
             } catch (e: Exception) {
-                Toast.makeText(context, "Playback Error: ${e.message}", Toast.LENGTH_LONG).show()
+                playbackError = e.localizedMessage ?: "Unable to start this stream."
             }
         } else if (isWebViewMode) {
             VideoPlayerManager.pause()
+        } else {
+            playbackError = "No valid stream URL is available for this title."
         }
     }
 
@@ -85,15 +91,6 @@ fun PlayerScreen(
     var isSubtitlesEnabled by remember { mutableStateOf(false) }
     
     // Server/Link states
-    var showServerDialog by remember { mutableStateOf(false) }
-    var selectedServer by remember { mutableStateOf(0) }
-    val serverLinks = listOf(
-        videoDetails.videoUrl,
-        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "Sintel.mp4"),
-        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "TearsOfSteel.mp4")
-    )
-    val serverNames = listOf("Server 1", "Server 2", "Server 3")
-
     // Download States
     var showDownloadDialog by remember { mutableStateOf(false) }
     val downloadsList by DownloadManager.downloads.collectAsState()
@@ -110,6 +107,10 @@ fun PlayerScreen(
                 if (state == Player.STATE_READY) {
                     duration = player.duration
                 }
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                playbackError = error.localizedMessage ?: "This stream could not be played. Check your connection and retry."
             }
         }
         player.addListener(listener)
@@ -253,6 +254,31 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
+                playbackError?.let { message ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.88f))
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(message, color = TextMain, fontSize = 14.sp)
+                        if (isValidPlaybackUrl) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    playbackError = null
+                                    VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
+                            ) {
+                                Text("Retry playback")
+                            }
+                        }
+                    }
+                }
+
                 // Overlaid controls
                 if (showControls) {
                     Box(
@@ -292,13 +318,6 @@ fun PlayerScreen(
                                     Icon(
                                         imageVector = Icons.Default.Tune,
                                         contentDescription = "Quality",
-                                        tint = TextMain
-                                    )
-                                }
-                                IconButton(onClick = { showServerDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Link,
-                                        contentDescription = "Server",
                                         tint = TextMain
                                     )
                                 }
@@ -565,48 +584,6 @@ fun PlayerScreen(
                 }
             }
         }
-    }
-
-    // Server/Link Selector dialog
-    if (showServerDialog) {
-        AlertDialog(
-            onDismissRequest = { showServerDialog = false },
-            title = { Text(text = "Select Server", color = TextMain) },
-            containerColor = CardSurfaceDark,
-            confirmButton = {
-                TextButton(onClick = { showServerDialog = false }) {
-                    Text(text = "Cancel", color = AccentCyan)
-                }
-            },
-            text = {
-                Column {
-                    serverNames.forEachIndexed { index, serverName ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedServer = index
-                                    showServerDialog = false
-                                    // Switch to selected server
-                                    VideoPlayerManager.playVideo(context, videoDetails.id, serverLinks[index], videoDetails.subtitlesUrl)
-                                }
-                                .padding(vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = serverName, color = TextMain)
-                            if (selectedServer == index) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = AccentCyan
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        )
     }
 
     // Playback Quality Selector dialog

@@ -20,7 +20,16 @@ object TheMovieBoxContent {
         "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     )
 
-    suspend fun fetchContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
+    suspend fun fetchContent(context: android.content.Context): ContentResponse? =
+        fetchContentInternal(context, allowAssetFallback = true)
+
+    suspend fun fetchOnlineContent(context: android.content.Context): ContentResponse? =
+        fetchContentInternal(context, allowAssetFallback = false)
+
+    private suspend fun fetchContentInternal(
+        context: android.content.Context,
+        allowAssetFallback: Boolean
+    ): ContentResponse? = withContext(Dispatchers.IO) {
         try {
             val doc = Jsoup.connect(BASE_URL)
                 .userAgent(USER_AGENTS.random())
@@ -32,7 +41,7 @@ object TheMovieBoxContent {
 
             if (nuxtScriptContent == null || nuxtScriptContent.isEmpty()) {
                 Log.w(TAG, "No NUXXT_DATA found on themoviebox.xyz")
-                return@withContext loadFallbackContent(context)
+                return@withContext fallbackOrNull(context, allowAssetFallback)
             }
 
             val jsonArray = JsonParser.parseString(nuxtScriptContent).asJsonArray
@@ -103,14 +112,17 @@ object TheMovieBoxContent {
             }
 
             Log.w(TAG, "No categories found in themoviebox.xyz response")
-            loadFallbackContent(context)
+            fallbackOrNull(context, allowAssetFallback)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch themoviebox.xyz content", e)
-            loadFallbackContent(context)
+            fallbackOrNull(context, allowAssetFallback)
         }
     }
 
-    private suspend fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
+    private suspend fun fallbackOrNull(context: android.content.Context, allowAssetFallback: Boolean): ContentResponse? =
+        if (allowAssetFallback) loadFallbackContent(context) else null
+
+    internal suspend fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
         try {
             val inputStream = context.assets.open("themoviebox_content.json")
             val json = inputStream.bufferedReader().use { it.readText() }
@@ -120,13 +132,15 @@ object TheMovieBoxContent {
                     MovieItem(
                         id = "tmb_${item["id"]}",
                         title = item["title"] as? String ?: "",
-                        poster = item["poster"] as? String ?: "",
-                        backdrop = item["backdrop"] as? String ?: "",
+                        poster = (item["poster"] as? String).orEmpty().ifBlank { item["coverUrl"] as? String ?: "" },
+                        backdrop = (item["backdrop"] as? String).orEmpty().ifBlank {
+                            (item["coverUrl"] as? String) ?: (item["poster"] as? String) ?: ""
+                        },
                         description = item["description"] as? String ?: "",
                         rating = item["rating"] as? String ?: "",
                         duration = item["duration"] as? String ?: "",
-                        videoUrl = item["videoUrl"] as? String ?: "",
-                        category = item["category"] as? String ?: "Movies",
+                        videoUrl = resolveFallbackVideoUrl(item),
+                        category = item["category"] as? String ?: item["genre"] as? String ?: "Movies",
                         year = item["year"] as? String ?: "",
                         quality = item["quality"] as? String ?: "HD"
                     )
@@ -208,7 +222,8 @@ object TheMovieBoxContent {
             }
         }
 
-        val detailUrl = "$BASE_URL/detail/$sDetail"
+        val configuredDetailUrl = resolveString(subject["detailUrl"], jsonArray).ifBlank { sDetail }
+        val detailUrl = resolveDetailUrl(configuredDetailUrl)
         val subjectId = subject["subjectId"]?.asString ?: item["subjectId"]?.asString ?: ""
 
         return MovieItem(
@@ -237,5 +252,22 @@ object TheMovieBoxContent {
         } else if (element.isJsonPrimitive) {
             element.asString
         } else ""
+    }
+
+    internal fun resolveFallbackVideoUrl(item: Map<*, *>): String {
+        val directUrl = (item["videoUrl"] as? String).orEmpty().ifBlank { item["url"] as? String ?: "" }
+        if (directUrl.isNotBlank()) return directUrl
+        val detailUrl = (item["detailUrl"] as? String).orEmpty()
+        if (detailUrl.isNotBlank()) return resolveDetailUrl(detailUrl)
+        val detailPath = (item["detailPath"] as? String).orEmpty()
+        return if (detailPath.isNotBlank()) resolveDetailUrl(detailPath) else ""
+    }
+
+    private fun resolveDetailUrl(value: String): String {
+        val trimmed = value.trim()
+        if (trimmed.isBlank()) return BASE_URL
+        if (trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true)) return trimmed
+        val path = trimmed.trimStart('/')
+        return if (path.startsWith("detail/", true)) "$BASE_URL/$path" else "$BASE_URL/detail/$path"
     }
 }

@@ -1,15 +1,8 @@
 package com.salmanlaghari.risingflix.data
 
-import android.util.Base64
-import com.google.gson.JsonElement
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
-import java.net.HttpURLConnection
-import java.net.URL
 
 interface ContentSource {
     val name: String
@@ -18,11 +11,13 @@ interface ContentSource {
 
 class ContentRepository(private val apiService: ApiService, private val context: android.content.Context) {
 
-    // In-memory caching
+    // This cache is isolated from preferences, downloads, and other user data.
+    private val catalogCache = CatalogCache(File(context.filesDir, "content_catalog_cache.json"))
     private var cachedContentList: ContentResponse? = null
     private var cachedTrendingMovies: List<MovieItem>? = null
     private var cachedPopularDramas: List<MovieItem>? = null
     private val cachedVideoDetails = mutableMapOf<String, VideoDetails>()
+    private var lastRefreshSucceeded = false
 
     private val USER_AGENTS = listOf(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -35,16 +30,22 @@ class ContentRepository(private val apiService: ApiService, private val context:
     // --- MAIN CONTENT LOADER (FULLY AUTOMATIC) ---
 
     suspend fun getContentList(forceRefresh: Boolean = false): ContentResponse = withContext(Dispatchers.IO) {
-        if (!forceRefresh && cachedContentList != null) {
-            return@withContext cachedContentList!!
+        val lastKnownCatalog = cachedContentList ?: catalogCache.load()
+        if (!forceRefresh && lastKnownCatalog != null) {
+            cachedContentList = lastKnownCatalog
+            return@withContext lastKnownCatalog
         }
 
-        // TheMovieBox content FIRST so it appears at the top of the app
-        val themovieboxContent: ContentResponse = try {
-            TheMovieBoxContent.fetchContent(context) ?: getFallbackContentList()
+        // Fetch live listings separately from the bundled fallback so an offline run
+        // cannot overwrite a newer on-device catalog with stale packaged data.
+        val liveTheMovieBox = try {
+            TheMovieBoxContent.fetchOnlineContent(context)
         } catch (e: Exception) {
-            getFallbackContentList()
+            null
         }
+        val themovieboxContent = liveTheMovieBox
+            ?: TheMovieBoxContent.loadFallbackContent(context)
+            ?: getFallbackContentList()
 
         // AutoContentManager fetches everything automatically — no API key needed
         // Sources: Archive.org (60K+ music, movies), Blender Foundation, Google sample bucket
@@ -55,18 +56,47 @@ class ContentRepository(private val apiService: ApiService, private val context:
             getFallbackContentList()
         }
 
-        // Also try static GitHub content as supplement
+        // Also try the maintained GitHub catalog as a supplement.
         val githubContent = try {
             apiService.getContentList()
         } catch (e: Exception) {
             null
         }
 
-        // Merge order: themoviebox first, then auto, then github
+        val archiveItems = autoContent.categories.flatMap { it.items }.filter {
+            it.id.startsWith("archive_") || it.id.startsWith("music_") || it.id.startsWith("cartoon_")
+        }
+        val hasOnlineCatalog = liveTheMovieBox.hasItems() || githubContent.hasItems() || archiveItems.isNotEmpty()
+
+        // Merge order keeps live listings first, while duplicate IDs prefer a direct stream URL.
         val merged = mergeContent(themovieboxContent, autoContent)
         val finalMerged = mergeContent(merged, githubContent)
-        cachedContentList = finalMerged
-        finalMerged
+        lastRefreshSucceeded = hasOnlineCatalog && finalMerged.categories.any { it.items.isNotEmpty() }
+
+        if (lastRefreshSucceeded) {
+            cachedContentList = finalMerged
+            catalogCache.save(finalMerged)
+            cachedVideoDetails.clear()
+        } else {
+            cachedContentList = lastKnownCatalog ?: finalMerged
+        }
+        cachedContentList!!
+    }
+
+    /** Returns a local snapshot immediately, with playable bundled samples as a last resort. */
+    suspend fun getOfflineContent(): ContentResponse = withContext(Dispatchers.IO) {
+        val local = cachedContentList ?: catalogCache.load()
+        if (local != null) {
+            cachedContentList = local
+            return@withContext local
+        }
+        getFallbackContentList()
+    }
+
+    /** Performs a network refresh and reports whether any online catalog produced usable items. */
+    suspend fun syncContent(): Boolean = withContext(Dispatchers.IO) {
+        getContentList(forceRefresh = true)
+        lastRefreshSucceeded
     }
 
     private fun mergeContent(primary: ContentResponse, secondary: ContentResponse?): ContentResponse {
@@ -76,14 +106,42 @@ class ContentRepository(private val apiService: ApiService, private val context:
         for (srcCat in secondary.categories) {
             val existingIdx = allCategories.indexOfFirst { it.name.equals(srcCat.name, ignoreCase = true) }
             if (existingIdx != -1) {
-                val combined = (allCategories[existingIdx].items + srcCat.items).distinctBy { it.id }
+                val combined = mergeItems(allCategories[existingIdx].items, srcCat.items)
                 allCategories[existingIdx] = allCategories[existingIdx].copy(items = combined)
             } else {
                 allCategories.add(srcCat)
             }
         }
-        return ContentResponse(featured = primary.featured ?: secondary.featured, categories = allCategories)
+        return ContentResponse(
+            featured = preferItem(primary.featured, secondary.featured),
+            categories = allCategories
+        )
     }
+
+    private fun mergeItems(primary: List<MovieItem>, secondary: List<MovieItem>): List<MovieItem> {
+        val merged = LinkedHashMap<String, MovieItem>()
+        (primary + secondary).forEach { candidate ->
+            val existing = merged[candidate.id]
+            merged[candidate.id] = preferItem(existing, candidate) ?: candidate
+        }
+        return merged.values.toList()
+    }
+
+    private fun preferItem(primary: MovieItem?, secondary: MovieItem?): MovieItem? {
+        if (primary == null) return secondary
+        if (secondary == null) return primary
+        val primaryUrl = primary.videoUrl.trim()
+        val secondaryUrl = secondary.videoUrl.trim()
+        if (primaryUrl.isBlank()) return secondary
+        if (secondaryUrl.isBlank()) return primary
+        if (PlaybackUrlResolver.isEmbeddedPage(primaryUrl) && !PlaybackUrlResolver.isEmbeddedPage(secondaryUrl)) {
+            return secondary
+        }
+        return primary
+    }
+
+    private fun ContentResponse?.hasItems(): Boolean =
+        this?.categories?.any { it.items.isNotEmpty() } == true
 
     suspend fun getTrendingMovies(forceRefresh: Boolean = false): List<MovieItem> = withContext(Dispatchers.IO) {
         if (!forceRefresh && cachedTrendingMovies != null) return@withContext cachedTrendingMovies!!

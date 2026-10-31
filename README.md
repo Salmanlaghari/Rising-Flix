@@ -9,7 +9,7 @@ Welcome to **Rising Flix** — the premium cinematic video streaming hub designe
 - 📱 **Horizontal Cinematic Dashboard**: Elegant cards layouts containing high-quality Unsplash poster images, gold rating badges (`⭐ 9.5`), and status tags (`Live` or `2026`).
 - 🎥 **Built-in Media3 ExoPlayer**: Fully customized landscape media player featuring auto-hiding overlays, seek timeline progress bars, rewind/forward 10s buttons, subtitles selection triggers, and cast-to-TV integration.
 - ⏬ **Premium Offline Downloads**: Simulated background downloads managing queueing, speeds (MB/s), file sizes, and pausing/resuming controls directly from the Library Screen.
-- 🚀 **Hardware Acceleration & Caching**: Complete in-memory repository caching for instant listings load, automated bitmap recycling, and full hardware accelerated rendering.
+- 🚀 **Hardware Acceleration & Caching**: A last-known-good catalog is saved in app-private storage for quick startup and offline browsing, alongside hardware-accelerated rendering.
 - 🔒 **Privacy Focused & Safe**: 100% compliant and safe out-of-the-box. Includes fully accessible legal documents (Privacy Policy and Terms of Service) directly inside assets.
 
 ---
@@ -37,6 +37,12 @@ Rising Flix now ships with a **fully synced content catalog sourced from MovieBo
 4. **Verify** every streaming URL returns HTTP 206 (playable) before shipping.
 
 The scraper and build scripts live under `scripts/` (`moviebox_scraper.py`, `build_content.py`, `build_supporting.py`).
+
+## Automatic in-app catalog refresh
+
+When the app starts, it schedules a one-time catch-up refresh and a unique WorkManager job that refreshes the catalog about every 12 hours while a network connection is available. Android may defer background work to conserve battery, so the interval is approximate. The refresh merges the live listing, Archive.org results, and the maintained GitHub catalog; successful results are stored in the app's private `content_catalog_cache.json` file. Existing downloads and other app data are not modified.
+
+If a refresh fails or the device is offline, the app keeps the last successful catalog and shows it immediately; a small bundled sample catalog is used only when there is no saved catalog yet. The player routes known title pages to WebView and direct media URLs to Media3, including HLS (`.m3u8`) and DASH (`.mpd`) streams. Playback still depends on the upstream source remaining reachable and allowing playback on the device; background sync cannot repair unavailable or expired third-party stream links.
 
 ---
 

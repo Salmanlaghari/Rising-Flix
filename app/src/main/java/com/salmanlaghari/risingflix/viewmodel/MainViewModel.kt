@@ -44,7 +44,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchContent() {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.value = UiState.Success(repository.getOfflineContent())
             try {
                 val response = repository.getContentList(forceRefresh = true)
                 _uiState.value = UiState.Success(response)
