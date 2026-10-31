@@ -32,9 +32,10 @@ import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
 import com.salmanlaghari.risingflix.data.CatalogResolver
+import com.salmanlaghari.risingflix.data.LicensedMediaPolicy
+import com.salmanlaghari.risingflix.data.MovieBoxLinkResolver
 import com.salmanlaghari.risingflix.data.VideoDetails
 import com.salmanlaghari.risingflix.data.VideoPlayerManager
-import com.salmanlaghari.risingflix.data.PlaybackUrlResolver
 import com.salmanlaghari.risingflix.data.DownloadManager
 import com.salmanlaghari.risingflix.data.DownloadStatus
 import com.salmanlaghari.risingflix.ui.components.PremiumVideoCard
@@ -55,13 +56,14 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isProviderPage = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl) ||
-        videoDetails.contentType == "details_only"
-    val isPlayableMedia = CatalogResolver.isPlayableDirectStream(videoDetails.videoUrl)
+    val isProviderPage = videoDetails.contentType == "details_only" ||
+        MovieBoxLinkResolver.isMovieBoxPage(videoDetails.sourcePageUrl ?: videoDetails.videoUrl)
+    val isPlayableMedia = LicensedMediaPolicy.isVerifiedFeature(videoDetails)
     val measuredRuntime = videoDetails.actualDurationSeconds?.takeIf { it > 0 }
         ?.let(CatalogResolver::formatDurationSeconds)
     val runtimeLabel = when {
         videoDetails.isShortClip -> "Short clip · ${measuredRuntime ?: "Runtime unverified"}"
+        videoDetails.isMovieBoxPage -> "MovieBox page · runtime unverified"
         videoDetails.isRuntimeUnverified -> "Runtime unverified"
         else -> measuredRuntime ?: "Runtime unverified"
     }
@@ -184,14 +186,14 @@ fun PlayerScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
                     }
                     Text(
-                        text = "No direct video stream is linked to this title.",
+                        text = "This is a MovieBox page listing, not an in-app stream.",
                         color = TextMain,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "This entry only has a provider details page, so it cannot play in the app yet.",
+                        text = "Open the original MovieBox page in your browser to continue.",
                         color = TextSub,
                         fontSize = 13.sp
                     )
@@ -199,9 +201,12 @@ fun PlayerScreen(
                     Button(
                         onClick = {
                             try {
+                                val pageUrl = MovieBoxLinkResolver.resolvePage(videoDetails.sourcePageUrl)
+                                    ?: MovieBoxLinkResolver.resolvePage(videoDetails.videoUrl)
+                                    ?: throw IllegalArgumentException("No safe MovieBox page is available")
                                 val intent = android.content.Intent(
                                     android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(videoDetails.videoUrl)
+                                    android.net.Uri.parse(pageUrl)
                                 )
                                 context.startActivity(intent)
                             } catch (e: Exception) {
@@ -210,7 +215,7 @@ fun PlayerScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
                     ) {
-                        Text("Open source details")
+                        Text(if (videoDetails.isMovieBoxPage) "Open MovieBox page" else "Open source page")
                     }
                 }
             } else if (!isPlayableMedia) {
@@ -225,9 +230,9 @@ fun PlayerScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
                     }
-                    Text("No playable direct stream", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("No licensed feature stream", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("This catalog entry has no supported direct video URL.", color = TextSub, fontSize = 13.sp)
+                    Text("Only the reviewed licensed full-length catalog can play in-app.", color = TextSub, fontSize = 13.sp)
                 }
             } else {
                 // ExoPlayer View
@@ -559,6 +564,30 @@ fun PlayerScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
+
+            if (!videoDetails.attribution.isNullOrBlank() && !videoDetails.licenseUrl.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Source and license", color = TextMain, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(videoDetails.attribution.orEmpty(), color = TextSub, fontSize = 12.sp, lineHeight = 17.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        val source = videoDetails.sourcePageUrl ?: LicensedMediaPolicy.VALKAAMA_SOURCE_URL
+                        runCatching {
+                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(source)))
+                        }.onFailure {
+                            Toast.makeText(context, "Cannot open the creator source page", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text("Creator source") }
+                    TextButton(onClick = {
+                        runCatching {
+                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(videoDetails.licenseUrl)))
+                        }.onFailure {
+                            Toast.makeText(context, "Cannot open the license page", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text(videoDetails.licenseName ?: "License") }
+                }
+            }
 
             Spacer(modifier = Modifier.height(28.dp))
 

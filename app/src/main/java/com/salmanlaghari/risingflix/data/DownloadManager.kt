@@ -37,23 +37,8 @@ object DownloadManager {
     var isWifiOnly: Boolean = true
     var storageLocation: String = "Internal Storage" // "Internal Storage" or "SD Card"
 
-    init {
-        // Pre-populate with one completed download for high-quality library presentation
-        _downloads.value = listOf(
-            DownloadItem(
-                videoId = "mov_01",
-                title = "Sintel: Rise of the Guardian",
-                poster = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop",
-                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-                quality = "720p",
-                progress = 1.0f,
-                status = DownloadStatus.COMPLETED,
-                sizeLabel = "42.5 MB"
-            )
-        )
-    }
-
     fun startDownload(videoId: String, title: String, poster: String, videoUrl: String, quality: String) {
+        if (!LicensedMediaPolicy.isAuthorizedMediaUrl(videoId, videoUrl)) return
         // Check if already downloading or completed
         val existing = _downloads.value.firstOrNull { it.videoId == videoId }
         if (existing != null && (existing.status == DownloadStatus.DOWNLOADING || existing.status == DownloadStatus.COMPLETED)) {

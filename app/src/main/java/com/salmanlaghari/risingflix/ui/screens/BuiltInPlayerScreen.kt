@@ -29,6 +29,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.salmanlaghari.risingflix.data.LicensedMediaPolicy
 import com.salmanlaghari.risingflix.data.VideoItem
 import com.salmanlaghari.risingflix.ui.theme.*
 import kotlinx.coroutines.delay
@@ -42,6 +43,21 @@ fun BuiltInPlayerScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val isAuthorizedMedia = LicensedMediaPolicy.isAuthorizedMediaUrl(video.id, video.videoUrl)
+
+    if (!isAuthorizedMedia) {
+        Box(
+            modifier = modifier.fillMaxSize().background(Color.Black).padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("This source is not licensed for in-app playback.", color = TextMain, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(onClick = onDismiss) { Text("Back") }
+            }
+        }
+        return
+    }
 
     // Lock screen orientation to Landscape for maximum premium streaming cinematic feel!
     DisposableEffect(key1 = Unit) {

@@ -15,7 +15,12 @@ data class MovieItem(
     @SerializedName("videoUrl") val videoUrl: String,
     @SerializedName("category") val category: String = "Movies",
     @SerializedName(value = "year", alternate = ["releaseYear"]) val year: String? = null,
-    @SerializedName("quality") val quality: String? = null
+    @SerializedName("quality") val quality: String? = null,
+    @SerializedName(value = "sourcePageUrl", alternate = ["detailUrl"]) val sourcePageUrl: String? = null,
+    @SerializedName(value = "sourceName", alternate = ["source"]) val sourceName: String? = null,
+    @SerializedName("licenseName") val licenseName: String? = null,
+    @SerializedName("licenseUrl") val licenseUrl: String? = null,
+    @SerializedName("attribution") val attribution: String? = null
 ) {
     val safePoster: String get() = poster?.takeIf(String::isNotBlank) ?: backdrop?.takeIf(String::isNotBlank).orEmpty()
     val safeBackdrop: String get() = backdrop?.takeIf(String::isNotBlank) ?: poster?.takeIf(String::isNotBlank).orEmpty()
@@ -27,8 +32,10 @@ data class MovieItem(
     val isShortClip: Boolean get() = contentType == "short_clip" ||
         actualDurationSeconds?.let { it > 0 && it < CatalogResolver.MIN_FEATURE_SECONDS } == true
     val isRuntimeUnverified: Boolean get() = contentType == "runtime_unverified"
+    val isMovieBoxPage: Boolean get() = contentType == "details_only" && sourceName.equals("MovieBox", ignoreCase = true)
     val displayTitle: String get() = when {
         isShortClip -> "$title (short clip)"
+        isMovieBoxPage -> "$title (MovieBox page)"
         contentType == "details_only" -> "$title (details only)"
         isRuntimeUnverified -> "$title (runtime unverified)"
         else -> title

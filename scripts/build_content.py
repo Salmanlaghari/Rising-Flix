@@ -1,212 +1,166 @@
 #!/usr/bin/env python3
-"""
-Transform data/moviebox_raw.json (MovieBox.pk scraped catalog)
-into the Rising-Flix content.json format consumed by the Android app.
+"""Build safe catalogs from checked-in data only; performs no MovieBox requests or stream extraction."""
+from __future__ import annotations
 
-Output: content.json  (replaces repo root content.json)
-        data/moviebox_content.json (cleaned catalog, kept for the app/server reference)
-"""
 import json
 import re
-import os
+import shutil
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
-from validate_stream_durations import verify_raw_items, write_json_atomic
+from verify_licensed_catalog import validate_catalog
 
-RAW = "data/moviebox_raw.json"
-OUT_CONTENT = "content.json"
-OUT_CATALOG = "data/moviebox_content.json"
-APP_ASSET = "app/src/main/assets/verified_content.json"
+ROOT = Path(__file__).resolve().parents[1]
+CURRENT_BASE = "https://themoviebox.xyz"
+ACCEPTED_HOSTS = {"themoviebox.xyz", "www.themoviebox.xyz", "moviebox.pk", "www.moviebox.pk"}
+SLUG_RE = re.compile(r"^[A-Za-z0-9._~-]+$")
+STREAM_KEYS = {"streamurl", "streamingurl", "downloadurl", "playbackurl", "contenturl", "url"}
 
-def slug_id(prefix, title, idx):
-    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "title"
-    return f"{prefix}_{idx:03d}_{base[:24]}"
 
-def quality_from_url(url):
-    if "-hd.mp4" in url or "-uhd.mp4" in url:
-        return "HD"
-    if "-sd.mp4" in url:
-        return "HD"
-    if "-ld.mp4" in url:
-        return "SD"
-    return "HD"
-
-def rating_for(title, year, idx):
-    # Deterministic pseudo rating in 6.5-9.2 range for display purposes
-    h = (sum(ord(c) for c in title) + (int(year) if year.isdigit() else 0) + idx) % 100
-    return f"{6.5 + (h % 28) / 10.0:.1f}"
-
-def to_movie_item(it, prefix, idx):
-    vid = it["videoUrl"]
-    poster = it.get("thumbnailUrl") or ""
-    backdrop = it.get("backdrop") or poster
-    desc = it.get("description") or ""
-    dur = it["duration"]
-    return {
-        "id": slug_id(prefix, it["title"], idx),
-        "title": it["title"],
-        "category": it["category"],
-        "videoUrl": vid,
-        "thumbnailUrl": poster,
-        "backdrop": backdrop,
-        "description": desc,
-        "rating": rating_for(it["title"], it.get("year", ""), idx),
-        "quality": quality_from_url(vid),
-        "year": it.get("year") or "2025",
-        "duration": dur,
-        "actualDurationSeconds": it.get("actualDurationSeconds"),
-        "contentType": it.get("contentType", "runtime_unverified"),
-        "source": "moviebox.pk",
-        "detailUrl": it.get("detailUrl", ""),
-    }
-
-def main():
-    raw_source = json.load(open(RAW, encoding="utf-8"))
-    print(f"[*] Loaded {len(raw_source)} raw items from {RAW}")
-    raw, audit = verify_raw_items(raw_source)
-    write_json_atomic(Path("data/stream_duration_audit.json"), audit)
-    print(f"[*] Actual-runtime audit: {json.dumps(audit['summary'], sort_keys=True)}")
-    feature_items = [x for x in raw if x.get("contentType") == "feature"]
-    short_items = [x for x in raw if x.get("contentType") == "short_clip"]
-    unverified_items = [x for x in raw if x.get("contentType") == "runtime_unverified"]
-    print(f"[*] Retaining {len(raw)} catalog rows: {len(feature_items)} feature-length, {len(short_items)} short clips, {len(unverified_items)} runtime-unverified")
-
-    # Sort: Movies first, then TV Series, then Animation; within each by title
-    cat_order = ["Movies", "TV Series", "Animation"]
-    by_cat = {c: [x for x in raw if x["category"] == c] for c in cat_order}
-    for c in cat_order:
-        by_cat[c].sort(key=lambda x: x["title"].lower())
-        print(f"    {c}: {len(by_cat[c])}")
-
-    # --- Build genre-based subcategories from Movies ---
-    # Genre keywords derived from descriptions + titles
-    GENRE_RULES = [
-        ("Action", ["action", "fight", "warrior", "battle", "mission", "agent", "soldier", "assassin", "chase", "combat", "crime", "kidnap"]),
-        ("Horror", ["horror", "scary", "ghost", "demon", "zombie", "vampire", "haunt", "terror", "slasher", "evil", "monster"]),
-        ("Romance", ["romance", "love", "romantic", "relationship", "couple", "kiss", "heart", "dating", "marriage"]),
-        ("Comedy", ["comedy", "funny", "humor", "laugh", "hilarious", "sitcom"]),
-        ("Sci-Fi & Fantasy", ["sci-fi", "scifi", "science fiction", "fantasy", "alien", "space", "future", "robot", "android", "multiverse", "superhero", "magic", "wizard", "dragon"]),
-        ("Thriller", ["thriller", "suspense", "mystery", "detective", "murder", "investigation", "conspiracy", "noir"]),
-        ("Drama", ["drama", "family", "life", "emotional", "biopic", "true story"]),
-        ("Animation", ["animated", "animation", "cartoon", "anime"]),
-    ]
-
-    def genre_of(it):
-        text = (it.get("description") + " " + it["title"]).lower()
-        for g, kws in GENRE_RULES:
-            if any(k in text for k in kws):
-                return g
+def resolve_moviebox_page(value: Any) -> str | None:
+    raw = str(value or "").strip()
+    if not raw:
         return None
+    parsed = urlparse(raw if "://" in raw else "")
+    if parsed.scheme:
+        if parsed.scheme.lower() not in {"http", "https"} or (parsed.hostname or "").lower() not in ACCEPTED_HOSTS:
+            return None
+        path = parsed.path.rstrip("/")
+    else:
+        path = "/" + raw.lstrip("/")
+    if path.lower().startswith("/detail/"):
+        slug = path[len("/detail/"):]
+    elif path.lower().startswith("/moviedetail/"):
+        slug = path[len("/moviedetail/"):]
+    elif not parsed.scheme and "/" not in path.strip("/"):
+        slug = path.strip("/")
+    else:
+        return None
+    slug = slug.strip("/")
+    if not slug or not SLUG_RE.fullmatch(slug):
+        return None
+    return f"{CURRENT_BASE}/detail/{slug}"
 
-    # Assign each movie its best genre
-    movie_genre = {}
-    for it in by_cat["Movies"]:
-        movie_genre[it["videoUrl"]] = genre_of(it)
 
-    # ---------- Build the categories list ----------
+def page_for_item(item: dict[str, Any]) -> str:
+    for key in ("sourcePageUrl", "detailUrl", "detailPath", "videoUrl"):
+        page = resolve_moviebox_page(item.get(key))
+        if page:
+            return page
+    return ""
+
+
+def sanitize_moviebox_item(item: dict[str, Any], category_name: str | None = None) -> dict[str, Any]:
+    clean = dict(item)
+    page = page_for_item(item)
+    for key in list(clean):
+        normalized = re.sub(r"[^a-z]", "", key.lower())
+        if normalized in STREAM_KEYS and key not in {"videoUrl", "sourcePageUrl"}:
+            clean.pop(key, None)
+    clean["videoUrl"] = page
+    clean["sourcePageUrl"] = page or None
+    clean["sourceName"] = "MovieBox"
+    clean["contentType"] = "details_only"
+    clean["actualDurationSeconds"] = None
+    clean["duration"] = "Runtime unverified"
+    if category_name:
+        clean["category"] = category_name
+    for key in ("licenseName", "licenseUrl", "attribution"):
+        clean.pop(key, None)
+    return clean
+
+
+def _atomic_json(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def flatten_rows(content: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for category in content.get("categories", []):
+        if isinstance(category, dict):
+            rows.extend(item for item in category.get("items", []) if isinstance(item, dict))
+    return rows
+
+
+def sanitize_content(content: dict[str, Any], licensed: dict[str, Any]) -> dict[str, Any]:
+    result = dict(content)
+    result["featured"] = licensed.get("featured")
     categories = []
+    for category in content.get("categories", []):
+        if not isinstance(category, dict):
+            continue
+        clean_category = dict(category)
+        clean_category["items"] = [
+            sanitize_moviebox_item(item, str(category.get("name") or "Movies"))
+            for item in category.get("items", []) if isinstance(item, dict)
+        ]
+        categories.append(clean_category)
+    result["categories"] = categories
+    return result
 
-    # 1. Movies (all movies) - icon movie
-    movies_items = [to_movie_item(it, "mov", i + 1) for i, it in enumerate(by_cat["Movies"])]
-    categories.append({
-        "id": "cat_movies",
-        "name": "Movies",
-        "icon": "movie",
-        "items": movies_items,
+
+def unique_page_items(content: dict[str, Any]) -> list[dict[str, Any]]:
+    by_page: dict[str, dict[str, Any]] = {}
+    for row in flatten_rows(content):
+        item = sanitize_moviebox_item(row)
+        page = item.get("sourcePageUrl")
+        if page:
+            by_page.setdefault(page, item)
+    return list(by_page.values())
+
+
+def build_supporting_catalogs(content: dict[str, Any]) -> None:
+    root = ROOT
+    all_items = unique_page_items(content)
+    categories = content.get("categories", [])
+    drama_items = []
+    for category in categories:
+        name = str(category.get("name", ""))
+        if any(term in name.lower() for term in ("drama", "fantasy", "tv")):
+            drama_items.extend(sanitize_moviebox_item(item) for item in category.get("items", []) if isinstance(item, dict))
+    drama_unique = {item["sourcePageUrl"]: item for item in drama_items if item.get("sourcePageUrl")}
+    _atomic_json(root / "trending.json", {
+        "featured": None,
+        "categories": [{"id": "moviebox_trending_links", "name": "MovieBox · Trending Pages", "icon": "open_in_new", "items": all_items[:30]}],
     })
+    _atomic_json(root / "popular_dramas.json", {
+        "featured": None,
+        "categories": [{"id": "moviebox_drama_links", "name": "MovieBox · Drama Pages", "icon": "open_in_new", "items": list(drama_unique.values())[:25]}],
+    })
+    _atomic_json(root / "search.json", {"results": all_items})
+    _atomic_json(root / "data/moviebox_content.json", all_items)
 
-    # 2. Action & Thriller (movies with action or thriller genre)
-    act_items = [to_movie_item(it, "act", i + 1) for i, it in enumerate(by_cat["Movies"])
-                 if movie_genre[it["videoUrl"]] in ("Action", "Thriller")]
-    if act_items:
-        categories.append({"id": "cat_action", "name": "Action & Thriller", "icon": "star", "items": act_items})
 
-    # 3. Sci-Fi & Fantasy
-    sf_items = [to_movie_item(it, "scifi", i + 1) for i, it in enumerate(by_cat["Movies"])
-                if movie_genre[it["videoUrl"]] == "Sci-Fi & Fantasy"]
-    if sf_items:
-        categories.append({"id": "cat_scifi", "name": "Sci-Fi & Fantasy", "icon": "rocket", "items": sf_items})
+def build() -> None:
+    licensed_path = ROOT / "licensed_content.json"
+    licensed = json.loads(licensed_path.read_text(encoding="utf-8"))
+    validate_catalog(licensed)
 
-    # 4. Horror
-    hor_items = [to_movie_item(it, "hor", i + 1) for i, it in enumerate(by_cat["Movies"])
-                 if movie_genre[it["videoUrl"]] == "Horror"]
-    if hor_items:
-        categories.append({"id": "cat_horror", "name": "Horror", "icon": "ghost", "items": hor_items})
+    content_path = ROOT / "content.json"
+    original = json.loads(content_path.read_text(encoding="utf-8"))
+    sanitized = sanitize_content(original, licensed)
+    _atomic_json(content_path, sanitized)
 
-    # 5. Romance & Comedy
-    rc_items = [to_movie_item(it, "rc", i + 1) for i, it in enumerate(by_cat["Movies"])
-                if movie_genre[it["videoUrl"]] in ("Romance", "Comedy")]
-    if rc_items:
-        categories.append({"id": "cat_romance", "name": "Romance & Comedy", "icon": "heart", "items": rc_items})
+    # This asset retains the existing 446-row/category listing snapshot as page links only.
+    moviebox_links = {"featured": None, "categories": sanitized.get("categories", [])}
+    _atomic_json(ROOT / "app/src/main/assets/moviebox_links.json", moviebox_links)
+    shutil.copyfile(licensed_path, ROOT / "app/src/main/assets/licensed_content.json")
 
-    # 6. Drama
-    dr_items = [to_movie_item(it, "dr", i + 1) for i, it in enumerate(by_cat["Movies"])
-                if movie_genre[it["videoUrl"]] == "Drama"]
-    if dr_items:
-        categories.append({"id": "cat_drama", "name": "Drama", "icon": "film", "items": dr_items})
+    # Sanitize flat snapshots too; never leave extracted media URLs in generated catalogs.
+    for relative in ("data/themoviebox_content.json",):
+        path = ROOT / relative
+        if path.exists():
+            value = json.loads(path.read_text(encoding="utf-8"))
+            rows = value if isinstance(value, list) else value.get("results", [])
+            _atomic_json(path, [sanitize_moviebox_item(row) for row in rows if isinstance(row, dict)])
 
-    # 7. TV Series
-    tv_items = [to_movie_item(it, "tv", i + 1) for i, it in enumerate(by_cat["TV Series"])]
-    if tv_items:
-        categories.append({"id": "cat_tv", "name": "TV Series", "icon": "tv", "items": tv_items})
+    build_supporting_catalogs(sanitized)
+    print(f"Built licensed feed and {sum(len(c.get('items', [])) for c in sanitized.get('categories', []))} MovieBox page-only rows")
 
-    # 8. Animation
-    an_items = [to_movie_item(it, "an", i + 1) for i, it in enumerate(by_cat["Animation"])]
-    if an_items:
-        categories.append({"id": "cat_animation", "name": "Animation", "icon": "sparkles", "items": an_items})
-
-    # ---------- Featured item ----------
-    # Pick a high-profile title for featured: prefer a recent movie with sd quality
-    featured_raw = None
-    for it in (item for item in by_cat["Movies"] if item.get("contentType") == "feature"):
-        if "-sd.mp4" in it["videoUrl"] and it.get("year") and it["year"].isdigit() and int(it["year"]) >= 2020:
-            featured_raw = it
-            break
-    if not featured_raw and feature_items:
-        featured_raw = feature_items[0]
-    featured = to_movie_item(featured_raw, "feat", 1) if featured_raw else None
-
-    content = {
-        "featured": featured,
-        "categories": categories,
-    }
-
-    # Write content.json
-    with open(OUT_CONTENT, "w", encoding="utf-8") as f:
-        json.dump(content, f, ensure_ascii=False, indent=2)
-    write_json_atomic(Path(APP_ASSET), content)
-    total_items = sum(len(c["items"]) for c in categories)
-    featured_title = featured["title"] if featured else "none"
-    print(f"[*] Wrote {OUT_CONTENT}: featured='{featured_title}' | {len(categories)} categories | {total_items} total items")
-    print(f"[*] Wrote bundled verified feed: {APP_ASSET}")
-    for c in categories:
-        print(f"    - {c['name']:20} ({c['id']:14}) -> {len(c['items'])} items")
-
-    # Also write a cleaned catalog to data/moviebox_content.json (flat list)
-    flat = []
-    for c in categories:
-        for it in c["items"]:
-            flat.append({
-                "id": it["id"],
-                "category": it["category"],
-                "title": it["title"],
-                "poster_image_url": it["thumbnailUrl"],
-                "backdrop": it["backdrop"],
-                "description": it["description"],
-                "streaming_url": it["videoUrl"],
-                "videoUrl": it["videoUrl"],
-                "quality": it["quality"],
-                "year": it["year"],
-                "rating": float(it["rating"]),
-                "duration": it["duration"],
-                "actualDurationSeconds": it["actualDurationSeconds"],
-                "contentType": it["contentType"],
-                "source": it["source"],
-                "detailUrl": it["detailUrl"],
-            })
-    with open(OUT_CATALOG, "w", encoding="utf-8") as f:
-        json.dump(flat, f, ensure_ascii=False, indent=2)
-    print(f"[*] Wrote {OUT_CATALOG}: {len(flat)} flat catalog entries")
 
 if __name__ == "__main__":
-    main()
+    build()
