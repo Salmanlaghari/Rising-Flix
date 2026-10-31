@@ -122,6 +122,17 @@ object TheMovieBoxContent {
     private suspend fun fallbackOrNull(context: android.content.Context, allowAssetFallback: Boolean): ContentResponse? =
         if (allowAssetFallback) loadFallbackContent(context) else null
 
+    /** Load the packaged catalog whose direct-stream durations were measured during import. */
+    internal suspend fun loadVerifiedCatalog(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
+        try {
+            val json = context.assets.open("verified_content.json").bufferedReader().use { it.readText() }
+            com.google.gson.Gson().fromJson(json, ContentResponse::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load verified bundled catalog", e)
+            null
+        }
+    }
+
     internal suspend fun loadFallbackContent(context: android.content.Context): ContentResponse? = withContext(Dispatchers.IO) {
         try {
             val inputStream = context.assets.open("themoviebox_content.json")

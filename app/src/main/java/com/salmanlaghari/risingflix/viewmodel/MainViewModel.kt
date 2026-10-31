@@ -99,7 +99,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         releaseYear = video.safeReleaseYear,
                         genre = video.category,
                         language = "English",
-                        quality = video.safeQuality
+                        quality = video.safeQuality,
+                        actualDurationSeconds = video.actualDurationSeconds,
+                        contentType = video.contentType
                     )
                     _selectedVideoDetails.value = basicDetails
                     val response = repository.getContentList()

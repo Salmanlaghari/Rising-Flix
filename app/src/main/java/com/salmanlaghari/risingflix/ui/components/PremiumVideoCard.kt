@@ -113,31 +113,45 @@ fun PremiumVideoCard(
                         .align(Alignment.TopStart)
                 ) {
                     Text(
-                        text = video.safeQuality,
+                        text = when {
+                            video.isShortClip -> "SHORT CLIP"
+                            video.contentType == "details_only" -> "DETAILS ONLY"
+                            else -> video.safeQuality
+                        },
                         color = TrueBlack,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
 
-                // Play Button overlay
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(
-                            brush = Brush.radialGradient(listOf(AccentCyan, Color(0x9900CC66))),
-                            shape = RoundedCornerShape(50)
-                        )
-                        .align(Alignment.Center)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
-                        tint = TrueBlack,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .align(Alignment.Center)
+                if (video.contentType == "details_only") {
+                    Text(
+                        text = "DETAILS",
+                        color = TextMain,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.Center)
                     )
+                } else {
+                    // Play Button overlay
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                brush = Brush.radialGradient(listOf(AccentCyan, Color(0x9900CC66))),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .align(Alignment.Center)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = TrueBlack,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
                 }
 
                 // Rating overlay at the bottom-right
@@ -170,7 +184,7 @@ fun PremiumVideoCard(
                     .padding(8.dp)
             ) {
                 Text(
-                    text = video.title,
+                    text = video.displayTitle,
                     color = TextMain,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -191,7 +205,9 @@ fun PremiumVideoCard(
                     Text(
                         text = video.safeDuration,
                         color = TextSub,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

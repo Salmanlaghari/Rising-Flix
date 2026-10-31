@@ -31,6 +31,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
+import com.salmanlaghari.risingflix.data.CatalogResolver
 import com.salmanlaghari.risingflix.data.VideoDetails
 import com.salmanlaghari.risingflix.data.VideoPlayerManager
 import com.salmanlaghari.risingflix.data.PlaybackUrlResolver
@@ -55,7 +56,17 @@ fun PlayerScreen(
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
     val isProviderPage = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl)
-    val isPlayableMedia = PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl)
+    val isPlayableMedia = CatalogResolver.isVerifiedDirectStream(
+        videoDetails.videoUrl,
+        videoDetails.actualDurationSeconds
+    )
+    val measuredRuntime = videoDetails.actualDurationSeconds?.takeIf { it > 0 }
+        ?.let(CatalogResolver::formatDurationSeconds)
+    val runtimeLabel = if (videoDetails.isShortClip) {
+        "Short clip · ${measuredRuntime ?: "Runtime unverified"}"
+    } else {
+        measuredRuntime ?: "Runtime unverified"
+    }
     var playbackError by remember(videoDetails.id) { mutableStateOf<String?>(null) }
     var isBuffering by remember(videoDetails.id) { mutableStateOf(false) }
 
@@ -75,7 +86,8 @@ fun PlayerScreen(
             VideoPlayerManager.pause()
         } else {
             isBuffering = false
-            playbackError = "No valid stream URL is available for this title."
+            playbackError = null
+            VideoPlayerManager.pause()
         }
     }
 
@@ -202,6 +214,31 @@ fun PlayerScreen(
                     ) {
                         Text("Open source details")
                     }
+                }
+            } else if (!isPlayableMedia) {
+                val measuredSeconds = videoDetails.actualDurationSeconds
+                val message = when {
+                    PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl) && measuredSeconds != null && measuredSeconds > 0 &&
+                        measuredSeconds < CatalogResolver.MIN_FEATURE_SECONDS ->
+                        "Measured stream duration is ${CatalogResolver.formatDurationSeconds(measuredSeconds)}. This video is a short clip, not the full movie."
+                    PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl) ->
+                        "The stream runtime has not been verified, so it will not be presented as a full movie."
+                    else -> "No verified feature-length video stream is available for this title."
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF101820))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
+                    }
+                    Text("Not playable as a full movie", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(message, color = TextSub, fontSize = 13.sp)
                 }
             } else {
                 // ExoPlayer View
@@ -402,7 +439,7 @@ fun PlayerScreen(
         ) {
             // Title & Meta Data
             Text(
-                text = videoDetails.title,
+                text = videoDetails.displayTitle,
                 color = TextMain,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -447,7 +484,7 @@ fun PlayerScreen(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = videoDetails.duration,
+                    text = runtimeLabel,
                     color = TextSub,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -635,7 +672,7 @@ fun PlayerScreen(
                     onClick = {
                         DownloadManager.startDownload(
                             videoId = videoDetails.id,
-                            title = videoDetails.title,
+                            title = videoDetails.displayTitle,
                             poster = videoDetails.poster,
                             videoUrl = videoDetails.videoUrl,
                             quality = selectedDlQuality

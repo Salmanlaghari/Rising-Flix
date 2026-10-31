@@ -16,33 +16,36 @@ Welcome to **Rising Flix** — the premium cinematic video streaming hub designe
 
 ## 🔄 MovieBox.pk Content Sync
 
-Rising Flix now ships with a **fully synced content catalog sourced from MovieBox.pk**. The streaming links are real, playable `.mp4` streams extracted directly from MovieBox's CDN.
+Rising Flix imports candidate media URLs and title metadata from MovieBox.pk. A title's reported runtime is not proof that its linked stream is a full movie: catalog generation measures each unique direct MP4 with `ffprobe`. Only media at least 45 minutes long enters feature-film feeds; shorter measured videos are kept separately as clearly labeled short clips.
 
-### What was synced
-- **300 unique titles** (240 Movies, 33 TV Series, 27 Animation) — all with **real streaming URLs** from `macdn.aoneroom.com` (`-sd.mp4` / `-ld.mp4`).
-- Every item includes a **verified playable video URL**, poster image, backdrop, description, year, duration, quality, and rating.
-- Content is organized into **8 categories**: Movies, Action & Thriller, Sci-Fi & Fantasy, Horror, Romance & Comedy, Drama, TV Series, and Animation.
+### Runtime validation
+- `actualDurationSeconds` and the displayed duration come from `ffprobe` reading the direct media container, not the title-page's claimed runtime.
+- Audit of the currently tracked feed: **300/300** unique MP4 URLs had measurable durations, but only **1** was at least 45 minutes; the other **299** are classified as short clips rather than full movies.
+- Streams measured below 45 minutes are moved to a separate **Short Clips** section, labeled “short clip,” and shown with their actual duration; they do not enter Movies, featured, trending, or full-movie matching. Streams that cannot be measured are not playable. Provider-only detail pages may remain discoverable under Provider Listings, marked runtime-unverified.
+- `data/stream_duration_audit.json` records each unique stream URL, its measured duration (or probe failure), and whether it passed the feature-length threshold.
+- A successful duration probe confirms the media's reported length at import time; it does not guarantee the upstream host will remain reachable or allow playback later.
 
 ### Files produced
 - `content.json` — primary catalog consumed by the app (`featured` + `categories[]`), schema matches `MovieItem.kt` / `ContentResponse.kt`.
-- `trending.json` — 30 trending titles (powers the Trending screen / `getTrendingMovies()`).
-- `popular_dramas.json` — 25 drama/fantasy/TV titles (powers `getPopularDramas()`).
-- `search.json` — full searchable index (`SearchResponse { results[] }` / `searchMovies()`).
-- `data/moviebox_content.json` — flat catalog reference (446 entries incl. genre cross-listings).
+- `trending.json` — up to 30 measured feature-length titles (powers the Trending screen / `getTrendingMovies()`).
+- `popular_dramas.json` — up to 25 measured feature-length drama/fantasy/TV titles (powers `getPopularDramas()`).
+- `search.json` — searchable index of measured feature films and separately labeled short clips (`SearchResponse { results[] }` / `searchMovies()`).
+- `data/moviebox_content.json` — flat catalog reference, including measured runtime fields.
+- `app/src/main/assets/verified_content.json` — packaged measured catalog for first launch and offline use, including before the updated remote feed is published.
 
 ### How the sync works
 1. **Collect** detail-page links from MovieBox listing pages (`/web/movie`, `/web/tv-series`, `/web/animated-series`).
-2. **Scrape** each detail page and extract the embedded **schema.org `VideoObject` JSON-LD**, which contains the real `contentUrl` (streaming `.mp4`), `name`, `description`, `thumbnailUrl`, `uploadDate`, and `duration`. The OpenGraph `og:image` is used as the high-res poster.
-3. **Transform** the scraped data into the Rising-Flix `content.json` format with stable IDs, genre-based subcategories, ratings, and quality tags.
-4. **Verify** every streaming URL returns HTTP 206 (playable) before shipping.
+2. **Scrape** candidate `contentUrl` values and descriptive metadata from embedded **schema.org `VideoObject` JSON-LD**; its `duration` is treated as unverified metadata.
+3. **Probe** each unique candidate stream with bounded-concurrency `ffprobe`; fail closed on probe errors, classify runtimes below 45 minutes as short clips, and never use those clips as full-movie matches.
+4. **Transform** measured feature-length streams into movie/genre feeds and short streams into a separate `Short Clips` category, then generate feature-only trending/drama feeds and a searchable index with measured runtimes.
 
-The scraper and build scripts live under `scripts/` (`moviebox_scraper.py`, `build_content.py`, `build_supporting.py`).
+The scripts live under `scripts/` (`moviebox_scraper.py`, `validate_stream_durations.py`, `build_content.py`, `build_supporting.py`). `build_content.py` requires `ffprobe` and writes the per-URL report to `data/stream_duration_audit.json`.
 
 ## Automatic in-app catalog refresh
 
-When the app starts, it schedules a one-time catch-up refresh and a unique WorkManager job that refreshes the catalog about every 12 hours while a network connection is available. Android may defer background work to conserve battery, so the interval is approximate. The maintained catalog and live title listing are fetched concurrently; the home feed no longer waits on unrelated Archive.org metadata requests or inserts demo shorts and promo clips as feature movies. Matching title-page entries use a direct stream only when that stream already exists in the maintained catalog. Successful results are stored in the app's private `content_catalog_cache.json` file. Existing downloads and other app data are not modified.
+When the app starts, it schedules a one-time catch-up refresh and a unique WorkManager job that refreshes the catalog about every 12 hours while a network connection is available. Android may defer background work to conserve battery, so the interval is approximate. The maintained catalog and live title listing are fetched concurrently; the home feed no longer waits on unrelated Archive.org metadata requests or inserts demo shorts and promo clips as feature movies. Direct streams require a measured runtime; under-45-minute items are moved to **Short Clips**, and title-page entries can reuse only a measured feature-length stream when title/year matching is unambiguous. Successful results are stored in the app's private `content_catalog_cache.json` file. Existing downloads and other app data are not modified.
 
-If a refresh fails or the device is offline, the app keeps the last successful catalog and shows it immediately; without a saved snapshot it uses the bundled title catalog rather than sample clips. Direct media URLs play through Media3, including HLS (`.m3u8`) and DASH (`.mpd`). A title that has only a provider details page is identified as not directly playable, with an option to open that page in the browser; the page is not presented as a playing video. Direct playback still depends on the upstream stream remaining reachable and allowing playback on the device.
+If a refresh fails or the device is offline, the app keeps the last successful catalog and shows it immediately; a new install uses the packaged measured catalog before falling back to the title-only bundled listing. Media3 plays measured direct streams, including short clips only from the clearly labeled **Short Clips** section and with their actual runtime shown; unverified streams are blocked. A title that has only a provider details page is identified as not directly playable, with an option to open that page in the browser; the page is not presented as a playing video. A duration probe does not guarantee the upstream stream will remain reachable or allow playback on the device.
 
 ---
 

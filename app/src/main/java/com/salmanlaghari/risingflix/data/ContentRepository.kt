@@ -28,9 +28,14 @@ class ContentRepository(private val apiService: ApiService, private val context:
         val lastKnownCatalog = cachedContentList
             ?: catalogCache.load()?.let(CatalogResolver::removeDemoAndShortForm)
         if (!forceRefresh && lastKnownCatalog != null) {
-            cachedContentList = lastKnownCatalog
-            return@withContext lastKnownCatalog
+            val bundled = TheMovieBoxContent.loadVerifiedCatalog(context)?.let(CatalogResolver::removeDemoAndShortForm)
+            val localCatalog = if (bundled == null) lastKnownCatalog else
+                CatalogResolver.removeDemoAndShortForm(mergeContent(lastKnownCatalog, bundled))
+            cachedContentList = localCatalog
+            return@withContext localCatalog
         }
+        val bundledVerifiedCatalog = TheMovieBoxContent.loadVerifiedCatalog(context)
+            ?.let(CatalogResolver::removeDemoAndShortForm)
 
         // Retrieve the maintained playable catalog immediately; the live title listing may
         // take a few seconds and is fetched concurrently rather than after a slow archive scan.
@@ -54,13 +59,16 @@ class ContentRepository(private val apiService: ApiService, private val context:
             github.await() to live.await()
         }
 
-        var finalMerged = githubContent ?: lastKnownCatalog
-        if (githubContent != null && lastKnownCatalog != null) {
-            finalMerged = mergeContent(githubContent, lastKnownCatalog)
+        val catalogCandidates = listOfNotNull(
+            githubContent?.takeIf { it.hasItems() },
+            lastKnownCatalog,
+            bundledVerifiedCatalog
+        )
+        var finalMerged = catalogCandidates.reduceOrNull { primary, secondary ->
+            mergeContent(primary, secondary)
         }
         if (liveTheMovieBox != null) {
-            val directCatalogs = listOfNotNull(githubContent, lastKnownCatalog)
-            val enrichedLive = CatalogResolver.enrichDetailPagesWithDirectStreams(liveTheMovieBox, directCatalogs)
+            val enrichedLive = CatalogResolver.enrichDetailPagesWithDirectStreams(liveTheMovieBox, catalogCandidates)
             finalMerged = if (finalMerged == null) enrichedLive else mergeContent(finalMerged, enrichedLive)
         }
         finalMerged = CatalogResolver.removeDemoAndShortForm(finalMerged ?: getFallbackContentList())
@@ -78,10 +86,16 @@ class ContentRepository(private val apiService: ApiService, private val context:
         cachedContentList!!
     }
 
-    /** Returns a local snapshot immediately, with playable bundled samples as a last resort. */
+    /** Returns the saved snapshot immediately, merged with the packaged verified feed. */
     suspend fun getOfflineContent(): ContentResponse = withContext(Dispatchers.IO) {
-        val local = cachedContentList
+        val cached = cachedContentList
             ?: catalogCache.load()?.let(CatalogResolver::removeDemoAndShortForm)
+        val bundled = TheMovieBoxContent.loadVerifiedCatalog(context)?.let(CatalogResolver::removeDemoAndShortForm)
+        val local = when {
+            cached != null && bundled != null -> CatalogResolver.removeDemoAndShortForm(mergeContent(cached, bundled))
+            cached != null -> cached
+            else -> bundled
+        }
         if (local != null) {
             cachedContentList = local
             return@withContext local
@@ -158,8 +172,11 @@ class ContentRepository(private val apiService: ApiService, private val context:
                 cachedTrendingMovies = trending.items
                 return@withContext trending.items
             }
-            val response = try { apiService.getTrendingMovies() } catch (e: Exception) { emptyList() }
-            cachedTrendingMovies = response.ifEmpty { list.categories.flatMap { it.items }.take(20) }
+            val response = CatalogResolver.filterFeatureItems(
+                try { apiService.getTrendingMovies() } catch (e: Exception) { emptyList() }
+            )
+            val localFeatures = CatalogResolver.filterFeatureItems(list.categories.flatMap { it.items })
+            cachedTrendingMovies = response.ifEmpty { localFeatures.take(20) }
             cachedTrendingMovies!!
         } catch (e: Exception) {
             cachedTrendingMovies ?: emptyList()
@@ -178,8 +195,10 @@ class ContentRepository(private val apiService: ApiService, private val context:
                 cachedPopularDramas = dramas.items
                 return@withContext dramas.items
             }
-            val response = try { apiService.getPopularDramas() } catch (e: Exception) { emptyList() }
-            cachedPopularDramas = response.ifEmpty { list.categories.flatMap { it.items }.take(15) }
+            val response = CatalogResolver.filterFeatureItems(
+                try { apiService.getPopularDramas() } catch (e: Exception) { emptyList() }
+            )
+            cachedPopularDramas = response
             cachedPopularDramas!!
         } catch (e: Exception) {
             cachedPopularDramas ?: emptyList()
@@ -198,7 +217,9 @@ class ContentRepository(private val apiService: ApiService, private val context:
                     it.category.contains(query, ignoreCase = true)
                 }.distinctBy { it.id }
             }
-            try { apiService.searchMovies(query).results } catch (e: Exception) { emptyList() }
+            CatalogResolver.filterEligibleItems(
+                try { apiService.searchMovies(query).results } catch (e: Exception) { emptyList() }
+            )
         } catch (e: Exception) {
             emptyList()
         }
@@ -225,6 +246,8 @@ class ContentRepository(private val apiService: ApiService, private val context:
                     genre = matchedItem.category,
                     language = matchedItem.safeQuality,
                     quality = matchedItem.safeQuality,
+                    actualDurationSeconds = matchedItem.actualDurationSeconds,
+                    contentType = matchedItem.contentType,
                     relatedItems = allItems.filter { it.id != matchedItem.id && it.category == matchedItem.category }.take(10)
                 )
                 cachedVideoDetails[id] = details
@@ -239,7 +262,8 @@ class ContentRepository(private val apiService: ApiService, private val context:
     // --- FALLBACK ---
 
     private suspend fun getFallbackContentList(): ContentResponse {
-        return TheMovieBoxContent.loadFallbackContent(context)?.let(CatalogResolver::removeDemoAndShortForm)
+        return TheMovieBoxContent.loadVerifiedCatalog(context)?.let(CatalogResolver::removeDemoAndShortForm)
+            ?: TheMovieBoxContent.loadFallbackContent(context)?.let(CatalogResolver::removeDemoAndShortForm)
             ?: ContentResponse(featured = null, categories = emptyList())
     }
 
@@ -275,6 +299,8 @@ class ContentRepository(private val apiService: ApiService, private val context:
             genre = matched.category,
             language = matched.safeQuality,
             quality = matched.safeQuality,
+            actualDurationSeconds = matched.actualDurationSeconds,
+            contentType = matched.contentType,
             relatedItems = cachedContentList?.categories?.flatMap { it.items }
                 ?.filter { it.id != id }?.take(5).orEmpty()
         )

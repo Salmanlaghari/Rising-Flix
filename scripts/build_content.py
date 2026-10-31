@@ -9,10 +9,14 @@ Output: content.json  (replaces repo root content.json)
 import json
 import re
 import os
+from pathlib import Path
+
+from validate_stream_durations import verify_raw_items, write_json_atomic
 
 RAW = "data/moviebox_raw.json"
 OUT_CONTENT = "content.json"
 OUT_CATALOG = "data/moviebox_content.json"
+APP_ASSET = "app/src/main/assets/verified_content.json"
 
 def slug_id(prefix, title, idx):
     base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "title"
@@ -37,14 +41,11 @@ def to_movie_item(it, prefix, idx):
     poster = it.get("thumbnailUrl") or ""
     backdrop = it.get("backdrop") or poster
     desc = it.get("description") or ""
-    dur = it.get("duration") or ""
-    # ensure a sensible duration fallback
-    if not dur:
-        dur = "1 h 30 min" if it["category"] == "Movies" else "45 min"
+    dur = it["duration"]
     return {
         "id": slug_id(prefix, it["title"], idx),
         "title": it["title"],
-        "category": it["category"],
+        "category": "Short Clips" if it.get("contentType") == "short_clip" else it["category"],
         "videoUrl": vid,
         "thumbnailUrl": poster,
         "backdrop": backdrop,
@@ -53,17 +54,28 @@ def to_movie_item(it, prefix, idx):
         "quality": quality_from_url(vid),
         "year": it.get("year") or "2025",
         "duration": dur,
+        "actualDurationSeconds": it["actualDurationSeconds"],
+        "contentType": it.get("contentType", "feature"),
         "source": "moviebox.pk",
         "detailUrl": it.get("detailUrl", ""),
     }
 
 def main():
-    raw = json.load(open(RAW, encoding="utf-8"))
-    print(f"[*] Loaded {len(raw)} raw items from {RAW}")
+    raw_source = json.load(open(RAW, encoding="utf-8"))
+    print(f"[*] Loaded {len(raw_source)} raw items from {RAW}")
+    raw, audit = verify_raw_items(raw_source)
+    write_json_atomic(Path("data/stream_duration_audit.json"), audit)
+    print(f"[*] Actual-runtime audit: {json.dumps(audit['summary'], sort_keys=True)}")
+    feature_items = [x for x in raw if x.get("contentType") == "feature"]
+    short_items = sorted(
+        (x for x in raw if x.get("contentType") == "short_clip"),
+        key=lambda item: item["title"].lower(),
+    )
+    print(f"[*] Measured media: {len(feature_items)} feature-length, {len(short_items)} short clips; unverified streams excluded")
 
     # Sort: Movies first, then TV Series, then Animation; within each by title
     cat_order = ["Movies", "TV Series", "Animation"]
-    by_cat = {c: [x for x in raw if x["category"] == c] for c in cat_order}
+    by_cat = {c: [x for x in feature_items if x["category"] == c] for c in cat_order}
     for c in cat_order:
         by_cat[c].sort(key=lambda x: x["title"].lower())
         print(f"    {c}: {len(by_cat[c])}")
@@ -145,6 +157,15 @@ def main():
     if an_items:
         categories.append({"id": "cat_animation", "name": "Animation", "icon": "sparkles", "items": an_items})
 
+    # Shorter measured media are retained only in a clearly labeled section.
+    if short_items:
+        categories.append({
+            "id": "cat_short_clips",
+            "name": "Short Clips",
+            "icon": "video",
+            "items": [to_movie_item(it, "clip", i + 1) for i, it in enumerate(short_items)],
+        })
+
     # ---------- Featured item ----------
     # Pick a high-profile title for featured: prefer a recent movie with sd quality
     featured_raw = None
@@ -152,9 +173,9 @@ def main():
         if "-sd.mp4" in it["videoUrl"] and it.get("year") and it["year"].isdigit() and int(it["year"]) >= 2020:
             featured_raw = it
             break
-    if not featured_raw:
+    if not featured_raw and by_cat["Movies"]:
         featured_raw = by_cat["Movies"][0]
-    featured = to_movie_item(featured_raw, "feat", 1)
+    featured = to_movie_item(featured_raw, "feat", 1) if featured_raw else None
 
     content = {
         "featured": featured,
@@ -164,8 +185,11 @@ def main():
     # Write content.json
     with open(OUT_CONTENT, "w", encoding="utf-8") as f:
         json.dump(content, f, ensure_ascii=False, indent=2)
+    write_json_atomic(Path(APP_ASSET), content)
     total_items = sum(len(c["items"]) for c in categories)
-    print(f"[*] Wrote {OUT_CONTENT}: featured='{featured['title']}' | {len(categories)} categories | {total_items} total items")
+    featured_title = featured["title"] if featured else "none"
+    print(f"[*] Wrote {OUT_CONTENT}: featured='{featured_title}' | {len(categories)} categories | {total_items} total items")
+    print(f"[*] Wrote bundled verified feed: {APP_ASSET}")
     for c in categories:
         print(f"    - {c['name']:20} ({c['id']:14}) -> {len(c['items'])} items")
 
@@ -186,6 +210,8 @@ def main():
                 "year": it["year"],
                 "rating": float(it["rating"]),
                 "duration": it["duration"],
+                "actualDurationSeconds": it["actualDurationSeconds"],
+                "contentType": it["contentType"],
                 "source": it["source"],
                 "detailUrl": it["detailUrl"],
             })

@@ -51,21 +51,44 @@ class CatalogPlaybackTest {
     }
 
     @Test
-    fun demoClipsAndKnownShortRuntimesAreRemovedFromTheMovieFeed() {
-        val feature = movie("feature", "https://cdn.example.org/feature.mp4").copy(duration = "1 h 36 m")
-        val short = movie("short", "https://cdn.example.org/short.mp4").copy(duration = "10 min")
-        val promo = movie("auto_promo", "https://cdn.example.org/promo.mp4").copy(duration = "15 sec")
+    fun measuredShortStreamsAreLabeledAndSeparatedFromFeatureMovies() {
+        val feature = movie("feature", "https://cdn.example.org/feature.mp4")
+            .copy(duration = "2 h 14 m", actualDurationSeconds = 8_040)
+        val metadataOnlyShort = movie("metadata-short", "https://cdn.example.org/metadata-short.mp4")
+            .copy(title = "Metadata Short", duration = "2 h 14 m", actualDurationSeconds = 138)
+        val unverified = movie("unverified", "https://cdn.example.org/unverified.mp4")
+            .copy(duration = "2 h 14 m", actualDurationSeconds = null)
+        val promo = movie("auto_promo", "https://cdn.example.org/promo.mp4")
+            .copy(actualDurationSeconds = 15)
+        val detailPage = movie("page", "https://themoviebox.xyz/detail/page")
+            .copy(duration = "2 h 14 m", actualDurationSeconds = null)
         val result = CatalogResolver.removeDemoAndShortForm(
             ContentResponse(
-                featured = short,
-                categories = listOf(Category("movies", "Movies", "movie", listOf(short, promo, feature)))
+                featured = metadataOnlyShort,
+                categories = listOf(
+                    Category("movies", "Movies", "movie", listOf(metadataOnlyShort, unverified, promo, feature, detailPage))
+                )
             )
         )
 
-        assertEquals(listOf("feature"), result.categories.single().items.map(MovieItem::id))
+        val movies = result.categories.first { it.name == "Movies" }.items
+        val clips = result.categories.first { it.name == "Short Clips" }.items
+        val providerListings = result.categories.first { it.name == "Provider Listings" }.items
+        assertEquals(listOf("feature"), movies.map(MovieItem::id))
+        assertEquals(listOf("metadata-short"), clips.map(MovieItem::id))
+        assertEquals(listOf("page"), providerListings.map(MovieItem::id))
         assertEquals("feature", result.featured?.id)
-        assertEquals(96, CatalogResolver.durationMinutes("1 h 36 m"))
-        assertEquals(1, CatalogResolver.durationMinutes("15 sec"))
+        assertEquals("2 h 14 min", feature.safeDuration)
+        assertEquals("2 min 18 sec", metadataOnlyShort.safeDuration)
+        assertEquals("Metadata Short (short clip)", clips.single().displayTitle)
+        assertEquals("short_clip", clips.single().contentType)
+        assertEquals("page (details only)", providerListings.single().displayTitle)
+        assertEquals("Runtime unverified", detailPage.safeDuration)
+        assertFalse(CatalogResolver.isVerifiedFeatureStream(metadataOnlyShort.videoUrl, metadataOnlyShort.actualDurationSeconds))
+        assertFalse(CatalogResolver.isVerifiedFeatureStream(unverified.videoUrl, unverified.actualDurationSeconds))
+        assertTrue(CatalogResolver.isVerifiedDirectStream(metadataOnlyShort.videoUrl, metadataOnlyShort.actualDurationSeconds))
+        assertFalse(CatalogResolver.isVerifiedDirectStream(unverified.videoUrl, unverified.actualDurationSeconds))
+        assertTrue(CatalogResolver.isVerifiedFeatureStream(feature.videoUrl, feature.actualDurationSeconds))
     }
 
     @Test
@@ -73,7 +96,7 @@ class CatalogPlaybackTest {
         val page = movie("tmb-1", "https://themoviebox.xyz/detail/example")
             .copy(title = "Example Film", year = "2020", duration = null)
         val direct = movie("catalog-1", "https://cdn.example.org/example-film.mp4")
-            .copy(title = "Example Film", year = "2020", duration = "1 h 40 m")
+            .copy(title = "Example Film", year = "2020", duration = "1 h 40 m", actualDurationSeconds = 6_000)
         val listing = ContentResponse(
             featured = page,
             categories = listOf(Category("movies", "Movies", "movie", listOf(page)))
@@ -87,7 +110,22 @@ class CatalogPlaybackTest {
         val result = enriched.categories.single().items.single()
 
         assertEquals("https://cdn.example.org/example-film.mp4", result.videoUrl)
-        assertEquals("1 h 40 m", result.duration)
+        assertEquals("1 h 40 min", result.duration)
+        assertEquals(6_000, result.actualDurationSeconds ?: -1)
+    }
+
+    @Test
+    fun measuredShortClipCannotBeMatchedToAFullMovieProviderPage() {
+        val page = movie("tmb-unverified", "https://themoviebox.xyz/detail/example")
+            .copy(title = "Example Film", year = "2020")
+        val shortClip = movie("catalog-short", "https://cdn.example.org/example-film.mp4")
+            .copy(title = "Example Film", year = "2020", actualDurationSeconds = 138)
+        val listing = ContentResponse(null, listOf(Category("movies", "Movies", "movie", listOf(page))))
+        val catalog = ContentResponse(null, listOf(Category("movies", "Movies", "movie", listOf(shortClip))))
+
+        val result = CatalogResolver.enrichDetailPagesWithDirectStreams(listing, listOf(catalog))
+
+        assertEquals(page.videoUrl, result.categories.single().items.single().videoUrl)
     }
 
     @Test
@@ -150,6 +188,7 @@ class CatalogPlaybackTest {
         id = id,
         title = id,
         poster = "https://example.org/$id.jpg",
-        videoUrl = url
+        videoUrl = url,
+        actualDurationSeconds = if (PlaybackUrlResolver.isEmbeddedPage(url)) null else 7_200
     )
 }

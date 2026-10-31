@@ -36,7 +36,9 @@ class ContentResponseParsingTest {
                       "backdrop": "https://example.com/sintel_back.jpg",
                       "description": "Sintel test movie",
                       "rating": "9.2",
-                      "duration": "14 min",
+                      "duration": "2 h 14 m",
+                      "actualDurationSeconds": 138,
+                      "contentType": "short_clip",
                       "videoUrl": "https://example.com/sintel.mp4",
                       "releaseYear": "2026",
                       "quality": "8K"
@@ -65,6 +67,10 @@ class ContentResponseParsingTest {
         assertEquals("Sintel", item.title)
         assertEquals("https://example.com/sintel.mp4", item.videoUrl)
         assertEquals("9.2", item.rating)
+        assertEquals("2 h 14 m", item.duration)
+        assertEquals(138, item.actualDurationSeconds ?: -1)
+        assertEquals("2 min 18 sec", item.safeDuration)
+        assertEquals("Sintel (short clip)", item.displayTitle)
         assertEquals("https://example.com/sintel.jpg", item.safePoster)
         assertEquals("2026", item.safeReleaseYear)
     }
