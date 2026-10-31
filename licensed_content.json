@@ -1,0 +1,51 @@
+{
+  "featured": {
+    "id": "valkaama_cc_by_sa",
+    "title": "Valkaama",
+    "poster": "android.resource://com.salmanlaghari.risingflix/drawable/valkaama_poster",
+    "backdrop": "android.resource://com.salmanlaghari.risingflix/drawable/valkaama_poster",
+    "description": "A Swedish poet and his friend set out on a final journey toward Valkaama, while a parallel search uncovers a dark lie. The creator-hosted 720p film is licensed under Creative Commons Attribution-ShareAlike 3.0.",
+    "rating": "—",
+    "duration": "1 h 33 min 6 sec",
+    "actualDurationSeconds": 5586,
+    "contentType": "feature",
+    "videoUrl": "https://www.valkaama.com/media/movie/Valkaama_720p.mkv",
+    "category": "Open-Licensed Features",
+    "year": "",
+    "quality": "720p",
+    "sourcePageUrl": "https://www.valkaama.com/index.php?page=valkaama&l=en",
+    "sourceName": "Valkaama official site",
+    "licenseName": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "attribution": "Valkaama, directed and produced by Tim Baumann; story by Hendrik Behnisch and Lynn Gray. Film licensed CC BY-SA 3.0. Thumbnail is a resized still from the film."
+  },
+  "categories": [
+    {
+      "id": "open_licensed_features",
+      "name": "Open-Licensed Features",
+      "icon": "movie",
+      "items": [
+        {
+          "id": "valkaama_cc_by_sa",
+          "title": "Valkaama",
+          "poster": "android.resource://com.salmanlaghari.risingflix/drawable/valkaama_poster",
+          "backdrop": "android.resource://com.salmanlaghari.risingflix/drawable/valkaama_poster",
+          "description": "A Swedish poet and his friend set out on a final journey toward Valkaama, while a parallel search uncovers a dark lie. The creator-hosted 720p film is licensed under Creative Commons Attribution-ShareAlike 3.0.",
+          "rating": "—",
+          "duration": "1 h 33 min 6 sec",
+          "actualDurationSeconds": 5586,
+          "contentType": "feature",
+          "videoUrl": "https://www.valkaama.com/media/movie/Valkaama_720p.mkv",
+          "category": "Open-Licensed Features",
+          "year": "",
+          "quality": "720p",
+          "sourcePageUrl": "https://www.valkaama.com/index.php?page=valkaama&l=en",
+          "sourceName": "Valkaama official site",
+          "licenseName": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+          "attribution": "Valkaama, directed and produced by Tim Baumann; story by Hendrik Behnisch and Lynn Gray. Film licensed CC BY-SA 3.0. Thumbnail is a resized still from the film."
+        }
+      ]
+    }
+  ]
+}

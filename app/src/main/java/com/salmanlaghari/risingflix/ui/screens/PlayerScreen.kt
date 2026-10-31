@@ -31,6 +31,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.salmanlaghari.risingflix.data.MovieItem
+import com.salmanlaghari.risingflix.data.CatalogResolver
+import com.salmanlaghari.risingflix.data.LicensedMediaPolicy
+import com.salmanlaghari.risingflix.data.MovieBoxLinkResolver
 import com.salmanlaghari.risingflix.data.VideoDetails
 import com.salmanlaghari.risingflix.data.VideoPlayerManager
 import com.salmanlaghari.risingflix.data.DownloadManager
@@ -53,17 +56,37 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isWebViewMode = videoDetails.videoUrl.contains("moviebox.pk") || videoDetails.videoUrl.contains("moviedetail") || videoDetails.videoUrl.contains("hdmoviescloud.com") || videoDetails.videoUrl.contains("themoviebox.xyz")
+    val isProviderPage = videoDetails.contentType == "details_only" ||
+        MovieBoxLinkResolver.isMovieBoxPage(videoDetails.sourcePageUrl ?: videoDetails.videoUrl)
+    val isPlayableMedia = LicensedMediaPolicy.isVerifiedFeature(videoDetails)
+    val measuredRuntime = videoDetails.actualDurationSeconds?.takeIf { it > 0 }
+        ?.let(CatalogResolver::formatDurationSeconds)
+    val runtimeLabel = when {
+        videoDetails.isShortClip -> "Short clip · ${measuredRuntime ?: "Runtime unverified"}"
+        videoDetails.isMovieBoxPage -> "MovieBox page · runtime unverified"
+        videoDetails.isRuntimeUnverified -> "Runtime unverified"
+        else -> measuredRuntime ?: "Runtime unverified"
+    }
+    var playbackError by remember(videoDetails.id) { mutableStateOf<String?>(null) }
+    var isBuffering by remember(videoDetails.id) { mutableStateOf(false) }
 
     // Start playing current video safely
     LaunchedEffect(videoDetails.id) {
-        if (!isWebViewMode && videoDetails.videoUrl.isNotEmpty()) {
+        if (isPlayableMedia) {
             try {
+                playbackError = null
+                isBuffering = true
                 VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
             } catch (e: Exception) {
-                Toast.makeText(context, "Playback Error: ${e.message}", Toast.LENGTH_LONG).show()
+                isBuffering = false
+                playbackError = e.localizedMessage ?: "Unable to start this stream."
             }
-        } else if (isWebViewMode) {
+        } else if (isProviderPage) {
+            isBuffering = false
+            VideoPlayerManager.pause()
+        } else {
+            isBuffering = false
+            playbackError = null
             VideoPlayerManager.pause()
         }
     }
@@ -85,15 +108,6 @@ fun PlayerScreen(
     var isSubtitlesEnabled by remember { mutableStateOf(false) }
     
     // Server/Link states
-    var showServerDialog by remember { mutableStateOf(false) }
-    var selectedServer by remember { mutableStateOf(0) }
-    val serverLinks = listOf(
-        videoDetails.videoUrl,
-        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "Sintel.mp4"),
-        videoDetails.videoUrl.replace("commondatastorage.googleapis.com", "commondatastorage.googleapis.com").replace("BigBuckBunny.mp4", "TearsOfSteel.mp4")
-    )
-    val serverNames = listOf("Server 1", "Server 2", "Server 3")
-
     // Download States
     var showDownloadDialog by remember { mutableStateOf(false) }
     val downloadsList by DownloadManager.downloads.collectAsState()
@@ -107,9 +121,15 @@ fun PlayerScreen(
                 isPlaying = playing
             }
             override fun onPlaybackStateChanged(state: Int) {
+                isBuffering = state == Player.STATE_BUFFERING
                 if (state == Player.STATE_READY) {
                     duration = player.duration
                 }
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                isBuffering = false
+                playbackError = error.localizedMessage ?: "This stream could not be played. Check your connection and retry."
             }
         }
         player.addListener(listener)
@@ -153,91 +173,66 @@ fun PlayerScreen(
                     showControls = !showControls
                 }
         ) {
-            if (isWebViewMode) {
-                var webViewLoadError by remember { mutableStateOf(false) }
-
-                if (webViewLoadError) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                "WebView could not be initialized on your device",
-                                color = TextMain,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(videoDetails.videoUrl)
-                                        )
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Cannot open browser", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
-                            ) {
-                                Text("Open in Browser")
-                            }
-                        }
+            if (isProviderPage) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF101820))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
                     }
-                } else {
-                    AndroidView(
-                        factory = { ctx ->
+                    Text(
+                        text = "This is a MovieBox page listing, not an in-app stream.",
+                        color = TextMain,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Open the original MovieBox page in your browser to continue.",
+                        color = TextSub,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = {
                             try {
-                                android.webkit.WebView(ctx).apply {
-                                    layoutParams = android.view.ViewGroup.LayoutParams(
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    settings.apply {
-                                        javaScriptEnabled = true
-                                        domStorageEnabled = true
-                                        mediaPlaybackRequiresUserGesture = false
-                                        userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
-                                        useWideViewPort = true
-                                        loadWithOverviewMode = true
-                                    }
-                                    webViewClient = android.webkit.WebViewClient()
-                                    webChromeClient = android.webkit.WebChromeClient()
-                                    loadUrl(videoDetails.videoUrl)
-                                }
-                            } catch (e: Throwable) {
-                                e.printStackTrace()
-                                webViewLoadError = true
-                                android.view.View(ctx) // Return a safe blank dummy view
+                                val pageUrl = MovieBoxLinkResolver.resolvePage(videoDetails.sourcePageUrl)
+                                    ?: MovieBoxLinkResolver.resolvePage(videoDetails.videoUrl)
+                                    ?: throw IllegalArgumentException("No safe MovieBox page is available")
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(pageUrl)
+                                )
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Cannot open provider page", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                // Render floating back button over WebView
-                Box(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextMain
-                        )
+                        Text(if (videoDetails.isMovieBoxPage) "Open MovieBox page" else "Open source page")
                     }
+                }
+            } else if (!isPlayableMedia) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF101820))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
+                    }
+                    Text("No licensed feature stream", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Only the reviewed licensed full-length catalog can play in-app.", color = TextSub, fontSize = 13.sp)
                 }
             } else {
                 // ExoPlayer View
@@ -253,8 +248,45 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
+                if (isBuffering && playbackError == null) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(color = AccentCyan)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Buffering…", color = TextMain, fontSize = 13.sp)
+                    }
+                }
+
+                playbackError?.let { message ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.88f))
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(message, color = TextMain, fontSize = 14.sp)
+                        if (isPlayableMedia) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    playbackError = null
+                                    VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
+                            ) {
+                                Text("Retry playback")
+                            }
+                        }
+                    }
+                }
+
                 // Overlaid controls
-                if (showControls) {
+                if (showControls && isPlayableMedia) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -292,13 +324,6 @@ fun PlayerScreen(
                                     Icon(
                                         imageVector = Icons.Default.Tune,
                                         contentDescription = "Quality",
-                                        tint = TextMain
-                                    )
-                                }
-                                IconButton(onClick = { showServerDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Link,
-                                        contentDescription = "Server",
                                         tint = TextMain
                                     )
                                 }
@@ -408,7 +433,7 @@ fun PlayerScreen(
         ) {
             // Title & Meta Data
             Text(
-                text = videoDetails.title,
+                text = videoDetails.displayTitle,
                 color = TextMain,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -453,7 +478,7 @@ fun PlayerScreen(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = videoDetails.duration,
+                    text = runtimeLabel,
                     color = TextSub,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -493,6 +518,7 @@ fun PlayerScreen(
                             showDownloadDialog = true
                         }
                     },
+                    enabled = isPlayableMedia || isDownloaded || isDownloading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDownloaded) Color.White.copy(alpha = 0.04f) else CardSurfaceDark,
                         contentColor = if (isDownloaded) AccentCyan else TextMain
@@ -506,7 +532,7 @@ fun PlayerScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isDownloaded) "Downloaded" else if (isDownloading) "Downloading..." else "Download",
+                        text = if (isDownloaded) "Downloaded" else if (isDownloading) "Downloading..." else if (isPlayableMedia) "Download" else "Unavailable",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
@@ -539,6 +565,30 @@ fun PlayerScreen(
                 lineHeight = 20.sp
             )
 
+            if (!videoDetails.attribution.isNullOrBlank() && !videoDetails.licenseUrl.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Source and license", color = TextMain, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(videoDetails.attribution.orEmpty(), color = TextSub, fontSize = 12.sp, lineHeight = 17.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        val source = videoDetails.sourcePageUrl ?: LicensedMediaPolicy.VALKAAMA_SOURCE_URL
+                        runCatching {
+                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(source)))
+                        }.onFailure {
+                            Toast.makeText(context, "Cannot open the creator source page", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text("Creator source") }
+                    TextButton(onClick = {
+                        runCatching {
+                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(videoDetails.licenseUrl)))
+                        }.onFailure {
+                            Toast.makeText(context, "Cannot open the license page", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text(videoDetails.licenseName ?: "License") }
+                }
+            }
+
             Spacer(modifier = Modifier.height(28.dp))
 
             // --- RELATED CONTENT LIST ---
@@ -565,48 +615,6 @@ fun PlayerScreen(
                 }
             }
         }
-    }
-
-    // Server/Link Selector dialog
-    if (showServerDialog) {
-        AlertDialog(
-            onDismissRequest = { showServerDialog = false },
-            title = { Text(text = "Select Server", color = TextMain) },
-            containerColor = CardSurfaceDark,
-            confirmButton = {
-                TextButton(onClick = { showServerDialog = false }) {
-                    Text(text = "Cancel", color = AccentCyan)
-                }
-            },
-            text = {
-                Column {
-                    serverNames.forEachIndexed { index, serverName ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedServer = index
-                                    showServerDialog = false
-                                    // Switch to selected server
-                                    VideoPlayerManager.playVideo(context, videoDetails.id, serverLinks[index], videoDetails.subtitlesUrl)
-                                }
-                                .padding(vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = serverName, color = TextMain)
-                            if (selectedServer == index) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = AccentCyan
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        )
     }
 
     // Playback Quality Selector dialog
@@ -682,7 +690,7 @@ fun PlayerScreen(
                     onClick = {
                         DownloadManager.startDownload(
                             videoId = videoDetails.id,
-                            title = videoDetails.title,
+                            title = videoDetails.displayTitle,
                             poster = videoDetails.poster,
                             videoUrl = videoDetails.videoUrl,
                             quality = selectedDlQuality

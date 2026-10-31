@@ -44,7 +44,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchContent() {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.value = UiState.Success(repository.getOfflineContent())
             try {
                 val response = repository.getContentList(forceRefresh = true)
                 _uiState.value = UiState.Success(response)
@@ -99,7 +99,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         releaseYear = video.safeReleaseYear,
                         genre = video.category,
                         language = "English",
-                        quality = video.safeQuality
+                        quality = video.safeQuality,
+                        actualDurationSeconds = video.actualDurationSeconds,
+                        contentType = video.contentType,
+                        sourcePageUrl = video.sourcePageUrl,
+                        sourceName = video.sourceName,
+                        licenseName = video.licenseName,
+                        licenseUrl = video.licenseUrl,
+                        attribution = video.attribution
                     )
                     _selectedVideoDetails.value = basicDetails
                     val response = repository.getContentList()

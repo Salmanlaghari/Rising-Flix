@@ -2,6 +2,7 @@ package com.salmanlaghari.risingflix
 
 import com.google.gson.Gson
 import com.salmanlaghari.risingflix.data.ContentResponse
+import com.salmanlaghari.risingflix.data.MovieItem
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -36,7 +37,9 @@ class ContentResponseParsingTest {
                       "backdrop": "https://example.com/sintel_back.jpg",
                       "description": "Sintel test movie",
                       "rating": "9.2",
-                      "duration": "14 min",
+                      "duration": "2 h 14 m",
+                      "actualDurationSeconds": 138,
+                      "contentType": "short_clip",
                       "videoUrl": "https://example.com/sintel.mp4",
                       "releaseYear": "2026",
                       "quality": "8K"
@@ -65,5 +68,45 @@ class ContentResponseParsingTest {
         assertEquals("Sintel", item.title)
         assertEquals("https://example.com/sintel.mp4", item.videoUrl)
         assertEquals("9.2", item.rating)
+        assertEquals("2 h 14 m", item.duration)
+        assertEquals(138, item.actualDurationSeconds ?: -1)
+        assertEquals("2 min 18 sec", item.safeDuration)
+        assertEquals("Sintel (short clip)", item.displayTitle)
+        assertEquals("https://example.com/sintel.jpg", item.safePoster)
+        assertEquals("2026", item.safeReleaseYear)
+    }
+
+    @Test
+    fun unverifiedRuntimeNeverDisplaysTheTitlePagesClaimedDuration() {
+        val item = Gson().fromJson(
+            """{"id":"unknown","title":"Unknown Film","duration":"2 h 14 m","videoUrl":"https://cdn.example.org/unknown.mp4","contentType":"runtime_unverified"}""",
+            MovieItem::class.java
+        )
+
+        assertEquals("Runtime unverified", item.safeDuration)
+        assertEquals("Unknown Film (runtime unverified)", item.displayTitle)
+    }
+
+    @Test
+    fun posterAliasesAndBackdropFallbackAreSupported() {
+        val gson = Gson()
+        val posterAlias = gson.fromJson(
+            """{"id":"poster","title":"Poster","poster":"https://example.org/poster.jpg","videoUrl":"https://example.org/poster.mp4"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+        val coverAlias = gson.fromJson(
+            """{"id":"cover","title":"Cover","coverUrl":"https://example.org/cover.jpg","backdropUrl":"https://example.org/backdrop.jpg","videoUrl":"https://example.org/cover.mp4","releaseYear":"1999"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+        val backdropFallback = gson.fromJson(
+            """{"id":"backdrop","title":"Backdrop","thumbnailUrl":"","backdrop":"https://example.org/backdrop-only.jpg","videoUrl":"https://example.org/backdrop.mp4"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+
+        assertEquals("https://example.org/poster.jpg", posterAlias.safePoster)
+        assertEquals("https://example.org/cover.jpg", coverAlias.safePoster)
+        assertEquals("https://example.org/backdrop.jpg", coverAlias.safeBackdrop)
+        assertEquals("1999", coverAlias.safeReleaseYear)
+        assertEquals("https://example.org/backdrop-only.jpg", backdropFallback.safePoster)
     }
 }

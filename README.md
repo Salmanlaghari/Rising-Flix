@@ -1,107 +1,46 @@
-# 🎬 Rising Flix — Premium Video Streaming App
+# Rising Flix
 
-Welcome to **Rising Flix** — the premium cinematic video streaming hub designed to play your favorite movies, dramas, sports, and cartoons all in one lightweight, modern application. Built with **Kotlin, Jetpack Compose, Retrofit, and Media3/ExoPlayer**, Rising Flix is designed from the ground up for extreme size and performance optimization, weighing in at only **4.0MB**!
+Rising Flix is an Android video catalog app built with Kotlin, Jetpack Compose, Retrofit, WorkManager, Coil, and Media3/ExoPlayer.
 
----
+## Content sources and playback policy
 
-## ✨ Key Features
+In-app playback is fail-closed: the current curated feed contains one creator-authorized full-length film, **Valkaama**, hosted by its official project site under **Creative Commons Attribution-ShareAlike 3.0**. The app allowlists its exact media URL and reviewed runtime; a title-page claim alone cannot authorize playback. The observed media is 5,585.960 seconds (about 93 minutes 6 seconds), H.264 1280×720 with AAC audio. The app displays the measured runtime and shows source/license links and attribution on the detail screen. The thumbnail is a resized still from the film.
 
-- 📱 **Horizontal Cinematic Dashboard**: Elegant cards layouts containing high-quality Unsplash poster images, gold rating badges (`⭐ 9.5`), and status tags (`Live` or `2026`).
-- 🎥 **Built-in Media3 ExoPlayer**: Fully customized landscape media player featuring auto-hiding overlays, seek timeline progress bars, rewind/forward 10s buttons, subtitles selection triggers, and cast-to-TV integration.
-- ⏬ **Premium Offline Downloads**: Simulated background downloads managing queueing, speeds (MB/s), file sizes, and pausing/resuming controls directly from the Library Screen.
-- 🚀 **Hardware Acceleration & Caching**: Complete in-memory repository caching for instant listings load, automated bitmap recycling, and full hardware accelerated rendering.
-- 🔒 **Privacy Focused & Safe**: 100% compliant and safe out-of-the-box. Includes fully accessible legal documents (Privacy Policy and Terms of Service) directly inside assets.
+The MovieBox snapshot is retained only as a set of detail-page links. Tapping one opens the original MovieBox page in the browser; the app does not scrape MovieBox pages at runtime, extract its media URLs, download those videos, or play them in-app. Its existing catalog snapshot remains available offline, but it is not refreshed because no authorized MovieBox API or permission for crawler-based refresh was found. Do not add provider media URLs to the licensed feed without a documented rights basis and measured full-length media.
 
----
+There is currently only one reviewed licensed feature, not enough to claim a large full-movie catalog. Finding additional creator-authorized, feature-length sources is required before the app can offer more licensed movies.
 
-## 🔄 MovieBox.pk Content Sync
+## Automatic sync and offline behavior
 
-Rising Flix now ships with a **fully synced content catalog sourced from MovieBox.pk**. The streaming links are real, playable `.mp4` streams extracted directly from MovieBox's CDN.
+At startup the app schedules a unique WorkManager catch-up task and a network-constrained periodic refresh (approximately every 12 hours; Android may defer it for battery use). It tries this PR branch's repository-maintained `licensed_content.json` feed first so an unmerged build can sync, then falls back to the same feed on `main`. A refresh is accepted only when the entry matches the app's reviewed allowlist, license, source page, media URL, and measured runtime. The MovieBox page-link snapshot and the licensed film are bundled for first launch/offline use; successful refreshes are saved in the app-private `content_catalog_cache.json` file. A failed refresh leaves the last safe snapshot available. Existing downloads, preferences, and other app data are not changed by catalog migration.
 
-### What was synced
-- **300 unique titles** (240 Movies, 33 TV Series, 27 Animation) — all with **real streaming URLs** from `macdn.aoneroom.com` (`-sd.mp4` / `-ld.mp4`).
-- Every item includes a **verified playable video URL**, poster image, backdrop, description, year, duration, quality, and rating.
-- Content is organized into **8 categories**: Movies, Action & Thriller, Sci-Fi & Fantasy, Horror, Romance & Comedy, Drama, TV Series, and Animation.
+After this PR is merged or its feature branch is deleted, the app falls back to the `main` feed. If neither repository endpoint is reachable, it keeps using the bundled or last-known-good cache and WorkManager retries later.
 
-### Files produced
-- `content.json` — primary catalog consumed by the app (`featured` + `categories[]`), schema matches `MovieItem.kt` / `ContentResponse.kt`.
-- `trending.json` — 30 trending titles (powers the Trending screen / `getTrendingMovies()`).
-- `popular_dramas.json` — 25 drama/fantasy/TV titles (powers `getPopularDramas()`).
-- `search.json` — full searchable index (`SearchResponse { results[] }` / `searchMovies()`).
-- `data/moviebox_content.json` — flat catalog reference (446 entries incl. genre cross-listings).
+## Maintainer files
 
-### How the sync works
-1. **Collect** detail-page links from MovieBox listing pages (`/web/movie`, `/web/tv-series`, `/web/animated-series`).
-2. **Scrape** each detail page and extract the embedded **schema.org `VideoObject` JSON-LD**, which contains the real `contentUrl` (streaming `.mp4`), `name`, `description`, `thumbnailUrl`, `uploadDate`, and `duration`. The OpenGraph `og:image` is used as the high-res poster.
-3. **Transform** the scraped data into the Rising-Flix `content.json` format with stable IDs, genre-based subcategories, ratings, and quality tags.
-4. **Verify** every streaming URL returns HTTP 206 (playable) before shipping.
+- `licensed_content.json`: the single curated licensed feature and its provenance.
+- `content.json`, `trending.json`, `popular_dramas.json`, `search.json`: legacy-compatible MovieBox page-link indexes; no extracted media URLs.
+- `app/src/main/assets/moviebox_links.json`: bundled page-only snapshot for offline browsing.
+- `app/src/main/assets/licensed_content.json`: bundled copy of the curated feed.
+- `scripts/build_content.py`: deterministic sanitizer/package builder for checked-in data only; it makes no network requests.
+- `scripts/verify_licensed_catalog.py`: validates the explicit source allowlist and can optionally re-probe the approved media with `--probe`.
 
-The scraper and build scripts live under `scripts/` (`moviebox_scraper.py`, `build_content.py`, `build_supporting.py`).
+The checked-in MovieBox title/poster snapshot is a legacy dataset, not an authorization to copy or stream new provider data. No live scraper or extracted stream URL is part of the app's content flow.
 
----
+## Build and test
 
-## 🎨 Premium Dark & Cyan Theme
+Use JDK 17 and Android SDK 34 or newer:
 
-Rising Flix features a striking, clean dark design system:
-- **Primary Background**: Velvet Deep Blue (`#0F172A`)
-- **Accent Highlight**: Neon Cyan (`#06B6D4`)
-- **Surfaces**: Slate Card Surface (`#1E293B`)
-- **Shape System**: Curved rounded corners (`12dp` to `16dp`) representing modern TV dashboards.
-
----
-
-## ⚙️ Architecture and Technical Stack
-
-- **UI Framework**: Modern declarative Jetpack Compose.
-- **Dependency Management**: Standard Gradle Version Catalog (`libs.versions.toml`).
-- **Media Engine**: Modern `androidx.media3` (`1.3.1`) ExoPlayer APIs with custom overlay controls.
-- **Network Engine**: Retrofit 2 + GSON for automatic, safe content deserialization.
-- **Image Loader**: Coil Compose with memory/disk caching policies.
-- **Obfuscation**: Comprehensive `proguard-rules.pro` mappings safeguarding against model and GSON reflection breaks.
-
----
-
-## 🛠️ How to Build From Source
-
-### Prerequisites:
-- Android Studio Ladybug or newer.
-- Android SDK 35 (compileSdk/targetSdk).
-- Java Development Kit (JDK) 17.
-
-### Step 1: Clone and Checkout the Release Branch:
 ```bash
-git clone https://github.com/Salmanlaghari/Rising-Flix.git
-cd Rising-Flix
-git checkout feature/phase-4-final-release
+./gradlew testDebugUnitTest assembleDebug
+python3 -m unittest discover -s scripts -p 'test_*.py' -v
+python3 scripts/verify_licensed_catalog.py
 ```
 
-### Step 2: Configure Signing:
-Create a `keystore.properties` file in the root folder containing the signing parameters:
-```properties
-storeFile=release-key.jks
-storePassword=your_keystore_password
-keyAlias=risingflix
-keyPassword=your_key_password
+For a live runtime check of the allowlisted creator-hosted file, run:
+
+```bash
+python3 scripts/verify_licensed_catalog.py --probe
 ```
 
-### Step 3: Compile and Package:
-- **Build Immersive Debug APK**:
-  ```bash
-  ./gradlew assembleDebug
-  ```
-- **Build Signed Minified Production APK (Only 4.0MB!)**:
-  ```bash
-  ./gradlew assembleRelease
-  ```
-
----
-
-## 📜 Licenses and Legal Compliance
-
-- **License**: MIT License (view [LICENSE](LICENSE) for details).
-- **Privacy Policy**: Refer to [privacy.html](app/src/main/assets/privacy.html) directly inside assets.
-- **Terms of Service**: Refer to [terms.html](app/src/main/assets/terms.html) directly inside assets.
-
----
-
-*Made with 💙 by Salman Laghari and Jules.*
+The app streams the 720p Matroska file from the creator's server; its roughly 4.56 GB size means playback quality depends on connection speed and device support. No physical-device playback has been certified.

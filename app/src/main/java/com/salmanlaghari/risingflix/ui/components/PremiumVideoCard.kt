@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,10 +80,13 @@ fun PremiumVideoCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             ) {
                 AsyncImage(
-                    model = video.safePoster,
+                    model = video.safePoster.takeIf(String::isNotBlank),
                     contentDescription = video.title,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(Color(0xFF173448)),
+                    error = ColorPainter(Color(0xFF173448)),
+                    fallback = ColorPainter(Color(0xFF173448))
                 )
 
                 // Velvet bottom gradient
@@ -109,31 +113,46 @@ fun PremiumVideoCard(
                         .align(Alignment.TopStart)
                 ) {
                     Text(
-                        text = video.safeQuality,
+                        text = when {
+                            video.isShortClip -> "SHORT CLIP"
+                            video.contentType == "details_only" -> "DETAILS ONLY"
+                            video.isRuntimeUnverified -> "UNVERIFIED"
+                            else -> video.safeQuality
+                        },
                         color = TrueBlack,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
 
-                // Play Button overlay
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(
-                            brush = Brush.radialGradient(listOf(AccentCyan, Color(0x9900CC66))),
-                            shape = RoundedCornerShape(50)
-                        )
-                        .align(Alignment.Center)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
-                        tint = TrueBlack,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .align(Alignment.Center)
+                if (video.contentType == "details_only") {
+                    Text(
+                        text = "DETAILS",
+                        color = TextMain,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.Center)
                     )
+                } else {
+                    // Play Button overlay
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                brush = Brush.radialGradient(listOf(AccentCyan, Color(0x9900CC66))),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .align(Alignment.Center)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = TrueBlack,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
                 }
 
                 // Rating overlay at the bottom-right
@@ -166,7 +185,7 @@ fun PremiumVideoCard(
                     .padding(8.dp)
             ) {
                 Text(
-                    text = video.title,
+                    text = video.displayTitle,
                     color = TextMain,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -187,7 +206,9 @@ fun PremiumVideoCard(
                     Text(
                         text = video.safeDuration,
                         color = TextSub,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

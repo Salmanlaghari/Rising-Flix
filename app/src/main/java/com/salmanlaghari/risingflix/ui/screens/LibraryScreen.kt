@@ -38,39 +38,9 @@ fun LibraryScreen(
     // Collect downloads list from DownloadManager StateFlow!
     val downloadList by DownloadManager.downloads.collectAsState()
 
-    // Mock Favorites
-    val initialFavorites = remember {
-        mutableStateListOf(
-            MovieItem(
-                id = "dra_01",
-                title = "Echoes of the Heart: Silent Tears",
-                poster = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600&auto=format&fit=crop",
-                backdrop = "",
-                description = "",
-                rating = "9.5",
-                duration = "5 min",
-                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-                category = "Dramas"
-            )
-        )
-    }
-
-    // Mock History
-    val initialHistory = remember {
-        mutableStateListOf(
-            MovieItem(
-                id = "feat_01",
-                title = "Epic Space Odyssey: Beyond Horizon",
-                poster = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop",
-                backdrop = "",
-                description = "",
-                rating = "9.8",
-                duration = "12 min",
-                videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-                category = "Movies"
-            )
-        )
-    }
+    // The library starts empty; it no longer seeds the UI with non-catalog demo clips.
+    val initialFavorites = remember { mutableStateListOf<MovieItem>() }
+    val initialHistory = remember { mutableStateListOf<MovieItem>() }
 
     var showDeleteConfirmDialog by remember { mutableStateOf<Pair<Int, Any>?>(null) } // Tab index, Item (DownloadItem or MovieItem)
 
