@@ -65,5 +65,30 @@ class ContentResponseParsingTest {
         assertEquals("Sintel", item.title)
         assertEquals("https://example.com/sintel.mp4", item.videoUrl)
         assertEquals("9.2", item.rating)
+        assertEquals("https://example.com/sintel.jpg", item.safePoster)
+        assertEquals("2026", item.safeReleaseYear)
+    }
+
+    @Test
+    fun posterAliasesAndBackdropFallbackAreSupported() {
+        val gson = Gson()
+        val posterAlias = gson.fromJson(
+            """{"id":"poster","title":"Poster","poster":"https://example.org/poster.jpg","videoUrl":"https://example.org/poster.mp4"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+        val coverAlias = gson.fromJson(
+            """{"id":"cover","title":"Cover","coverUrl":"https://example.org/cover.jpg","backdropUrl":"https://example.org/backdrop.jpg","videoUrl":"https://example.org/cover.mp4","releaseYear":"1999"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+        val backdropFallback = gson.fromJson(
+            """{"id":"backdrop","title":"Backdrop","thumbnailUrl":"","backdrop":"https://example.org/backdrop-only.jpg","videoUrl":"https://example.org/backdrop.mp4"}""",
+            com.salmanlaghari.risingflix.data.MovieItem::class.java
+        )
+
+        assertEquals("https://example.org/poster.jpg", posterAlias.safePoster)
+        assertEquals("https://example.org/cover.jpg", coverAlias.safePoster)
+        assertEquals("https://example.org/backdrop.jpg", coverAlias.safeBackdrop)
+        assertEquals("1999", coverAlias.safeReleaseYear)
+        assertEquals("https://example.org/backdrop-only.jpg", backdropFallback.safePoster)
     }
 }

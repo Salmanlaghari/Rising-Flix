@@ -54,22 +54,27 @@ fun PlayerScreen(
     // Retrieve singleton player
     val player = remember { VideoPlayerManager.getPlayer(context) }
 
-    val isWebViewMode = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl)
-    val isValidPlaybackUrl = PlaybackUrlResolver.isValidHttpUrl(videoDetails.videoUrl)
+    val isProviderPage = PlaybackUrlResolver.isEmbeddedPage(videoDetails.videoUrl)
+    val isPlayableMedia = PlaybackUrlResolver.isDirectStream(videoDetails.videoUrl)
     var playbackError by remember(videoDetails.id) { mutableStateOf<String?>(null) }
+    var isBuffering by remember(videoDetails.id) { mutableStateOf(false) }
 
     // Start playing current video safely
     LaunchedEffect(videoDetails.id) {
-        if (!isWebViewMode && isValidPlaybackUrl) {
+        if (isPlayableMedia) {
             try {
                 playbackError = null
+                isBuffering = true
                 VideoPlayerManager.playVideo(context, videoDetails.id, videoDetails.videoUrl, videoDetails.subtitlesUrl)
             } catch (e: Exception) {
+                isBuffering = false
                 playbackError = e.localizedMessage ?: "Unable to start this stream."
             }
-        } else if (isWebViewMode) {
+        } else if (isProviderPage) {
+            isBuffering = false
             VideoPlayerManager.pause()
         } else {
+            isBuffering = false
             playbackError = "No valid stream URL is available for this title."
         }
     }
@@ -104,12 +109,14 @@ fun PlayerScreen(
                 isPlaying = playing
             }
             override fun onPlaybackStateChanged(state: Int) {
+                isBuffering = state == Player.STATE_BUFFERING
                 if (state == Player.STATE_READY) {
                     duration = player.duration
                 }
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                isBuffering = false
                 playbackError = error.localizedMessage ?: "This stream could not be played. Check your connection and retry."
             }
         }
@@ -154,90 +161,46 @@ fun PlayerScreen(
                     showControls = !showControls
                 }
         ) {
-            if (isWebViewMode) {
-                var webViewLoadError by remember { mutableStateOf(false) }
-
-                if (webViewLoadError) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                "WebView could not be initialized on your device",
-                                color = TextMain,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(videoDetails.videoUrl)
-                                        )
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Cannot open browser", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
-                            ) {
-                                Text("Open in Browser")
-                            }
-                        }
+            if (isProviderPage) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF101820))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextMain)
                     }
-                } else {
-                    AndroidView(
-                        factory = { ctx ->
+                    Text(
+                        text = "No direct video stream is linked to this title.",
+                        color = TextMain,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This entry only has a provider details page, so it cannot play in the app yet.",
+                        color = TextSub,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = {
                             try {
-                                android.webkit.WebView(ctx).apply {
-                                    layoutParams = android.view.ViewGroup.LayoutParams(
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    settings.apply {
-                                        javaScriptEnabled = true
-                                        domStorageEnabled = true
-                                        mediaPlaybackRequiresUserGesture = false
-                                        userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36"
-                                        useWideViewPort = true
-                                        loadWithOverviewMode = true
-                                    }
-                                    webViewClient = android.webkit.WebViewClient()
-                                    webChromeClient = android.webkit.WebChromeClient()
-                                    loadUrl(videoDetails.videoUrl)
-                                }
-                            } catch (e: Throwable) {
-                                e.printStackTrace()
-                                webViewLoadError = true
-                                android.view.View(ctx) // Return a safe blank dummy view
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(videoDetails.videoUrl)
+                                )
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Cannot open provider page", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                // Render floating back button over WebView
-                Box(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = TrueBlack)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextMain
-                        )
+                        Text("Open source details")
                     }
                 }
             } else {
@@ -254,6 +217,18 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
+                if (isBuffering && playbackError == null) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(color = AccentCyan)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Buffering…", color = TextMain, fontSize = 13.sp)
+                    }
+                }
+
                 playbackError?.let { message ->
                     Column(
                         modifier = Modifier
@@ -264,7 +239,7 @@ fun PlayerScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(message, color = TextMain, fontSize = 14.sp)
-                        if (isValidPlaybackUrl) {
+                        if (isPlayableMedia) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = {
@@ -280,7 +255,7 @@ fun PlayerScreen(
                 }
 
                 // Overlaid controls
-                if (showControls) {
+                if (showControls && isPlayableMedia) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -512,6 +487,7 @@ fun PlayerScreen(
                             showDownloadDialog = true
                         }
                     },
+                    enabled = isPlayableMedia || isDownloaded || isDownloading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDownloaded) Color.White.copy(alpha = 0.04f) else CardSurfaceDark,
                         contentColor = if (isDownloaded) AccentCyan else TextMain
@@ -525,7 +501,7 @@ fun PlayerScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isDownloaded) "Downloaded" else if (isDownloading) "Downloading..." else "Download",
+                        text = if (isDownloaded) "Downloaded" else if (isDownloading) "Downloading..." else if (isPlayableMedia) "Download" else "Unavailable",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )

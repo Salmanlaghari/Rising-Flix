@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,10 +80,13 @@ fun PremiumVideoCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             ) {
                 AsyncImage(
-                    model = video.safePoster,
+                    model = video.safePoster.takeIf(String::isNotBlank),
                     contentDescription = video.title,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(Color(0xFF173448)),
+                    error = ColorPainter(Color(0xFF173448)),
+                    fallback = ColorPainter(Color(0xFF173448))
                 )
 
                 // Velvet bottom gradient

@@ -2,6 +2,9 @@ package com.salmanlaghari.risingflix.data
 
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 
 interface ContentSource {
@@ -19,58 +22,50 @@ class ContentRepository(private val apiService: ApiService, private val context:
     private val cachedVideoDetails = mutableMapOf<String, VideoDetails>()
     private var lastRefreshSucceeded = false
 
-    private val USER_AGENTS = listOf(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-    )
-
-    private fun getRandomUserAgent() = USER_AGENTS.random()
-
     // --- MAIN CONTENT LOADER (FULLY AUTOMATIC) ---
 
     suspend fun getContentList(forceRefresh: Boolean = false): ContentResponse = withContext(Dispatchers.IO) {
-        val lastKnownCatalog = cachedContentList ?: catalogCache.load()
+        val lastKnownCatalog = cachedContentList
+            ?: catalogCache.load()?.let(CatalogResolver::removeDemoAndShortForm)
         if (!forceRefresh && lastKnownCatalog != null) {
             cachedContentList = lastKnownCatalog
             return@withContext lastKnownCatalog
         }
 
-        // Fetch live listings separately from the bundled fallback so an offline run
-        // cannot overwrite a newer on-device catalog with stale packaged data.
-        val liveTheMovieBox = try {
-            TheMovieBoxContent.fetchOnlineContent(context)
-        } catch (e: Exception) {
-            null
-        }
-        val themovieboxContent = liveTheMovieBox
-            ?: TheMovieBoxContent.loadFallbackContent(context)
-            ?: getFallbackContentList()
-
-        // AutoContentManager fetches everything automatically — no API key needed
-        // Sources: Archive.org (60K+ music, movies), Blender Foundation, Google sample bucket
-        val autoContent = try {
-            AutoContentManager.getAllContent()
-        } catch (e: Exception) {
-            android.util.Log.e("ContentRepo", "Auto content fetch failed", e)
-            getFallbackContentList()
-        }
-
-        // Also try the maintained GitHub catalog as a supplement.
-        val githubContent = try {
-            apiService.getContentList()
-        } catch (e: Exception) {
-            null
+        // Retrieve the maintained playable catalog immediately; the live title listing may
+        // take a few seconds and is fetched concurrently rather than after a slow archive scan.
+        val (githubContent, liveTheMovieBox) = coroutineScope {
+            val github = async {
+                try {
+                    CatalogResolver.removeDemoAndShortForm(apiService.getContentList())
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            val live = async {
+                try {
+                    withTimeoutOrNull(5_000L) {
+                        TheMovieBoxContent.fetchOnlineContent(context)
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            github.await() to live.await()
         }
 
-        val archiveItems = autoContent.categories.flatMap { it.items }.filter {
-            it.id.startsWith("archive_") || it.id.startsWith("music_") || it.id.startsWith("cartoon_")
+        var finalMerged = githubContent ?: lastKnownCatalog
+        if (githubContent != null && lastKnownCatalog != null) {
+            finalMerged = mergeContent(githubContent, lastKnownCatalog)
         }
-        val hasOnlineCatalog = liveTheMovieBox.hasItems() || githubContent.hasItems() || archiveItems.isNotEmpty()
+        if (liveTheMovieBox != null) {
+            val directCatalogs = listOfNotNull(githubContent, lastKnownCatalog)
+            val enrichedLive = CatalogResolver.enrichDetailPagesWithDirectStreams(liveTheMovieBox, directCatalogs)
+            finalMerged = if (finalMerged == null) enrichedLive else mergeContent(finalMerged, enrichedLive)
+        }
+        finalMerged = CatalogResolver.removeDemoAndShortForm(finalMerged ?: getFallbackContentList())
 
-        // Merge order keeps live listings first, while duplicate IDs prefer a direct stream URL.
-        val merged = mergeContent(themovieboxContent, autoContent)
-        val finalMerged = mergeContent(merged, githubContent)
+        val hasOnlineCatalog = liveTheMovieBox.hasItems() || githubContent.hasItems()
         lastRefreshSucceeded = hasOnlineCatalog && finalMerged.categories.any { it.items.isNotEmpty() }
 
         if (lastRefreshSucceeded) {
@@ -85,7 +80,8 @@ class ContentRepository(private val apiService: ApiService, private val context:
 
     /** Returns a local snapshot immediately, with playable bundled samples as a last resort. */
     suspend fun getOfflineContent(): ContentResponse = withContext(Dispatchers.IO) {
-        val local = cachedContentList ?: catalogCache.load()
+        val local = cachedContentList
+            ?: catalogCache.load()?.let(CatalogResolver::removeDemoAndShortForm)
         if (local != null) {
             cachedContentList = local
             return@withContext local
@@ -119,12 +115,18 @@ class ContentRepository(private val apiService: ApiService, private val context:
     }
 
     private fun mergeItems(primary: List<MovieItem>, secondary: List<MovieItem>): List<MovieItem> {
-        val merged = LinkedHashMap<String, MovieItem>()
+        val merged = mutableListOf<MovieItem>()
         (primary + secondary).forEach { candidate ->
-            val existing = merged[candidate.id]
-            merged[candidate.id] = preferItem(existing, candidate) ?: candidate
+            val existingIndex = merged.indexOfFirst {
+                it.id == candidate.id || CatalogResolver.sameCatalogTitle(it, candidate)
+            }
+            if (existingIndex < 0) {
+                merged.add(candidate)
+            } else {
+                merged[existingIndex] = preferItem(merged[existingIndex], candidate) ?: candidate
+            }
         }
-        return merged.values.toList()
+        return merged
     }
 
     private fun preferItem(primary: MovieItem?, secondary: MovieItem?): MovieItem? {
@@ -236,35 +238,45 @@ class ContentRepository(private val apiService: ApiService, private val context:
 
     // --- FALLBACK ---
 
-    private fun getFallbackContentList(): ContentResponse {
-        return ContentResponse(
-            featured = AutoContentManager.GUARANTEED_MOVIES.first().toMovieItem(),
-            categories = listOf(
-                Category(id = "cat_movies", name = "Movies", icon = "movie",
-                    items = AutoContentManager.GUARANTEED_MOVIES.map { it.toMovieItem() }),
-                Category(id = "cat_samples", name = "Entertainment", icon = "star",
-                    items = AutoContentManager.SAMPLE_VIDEOS.map { it.toMovieItem() })
-            )
-        )
+    private suspend fun getFallbackContentList(): ContentResponse {
+        return TheMovieBoxContent.loadFallbackContent(context)?.let(CatalogResolver::removeDemoAndShortForm)
+            ?: ContentResponse(featured = null, categories = emptyList())
     }
 
     private fun getFallbackVideoDetails(id: String): VideoDetails {
-        val all = AutoContentManager.GUARANTEED_MOVIES + AutoContentManager.SAMPLE_VIDEOS
-        val matched = all.firstOrNull { it.id == id } ?: all.first()
+        val matched = cachedContentList?.categories?.flatMap { it.items }?.firstOrNull { it.id == id }
+        if (matched == null) {
+            return VideoDetails(
+                id = id,
+                title = "Content unavailable",
+                poster = "",
+                backdrop = "",
+                description = "No catalog details or playable stream are available offline.",
+                rating = "—",
+                duration = "—",
+                videoUrl = "",
+                releaseYear = "—",
+                genre = "",
+                language = "",
+                quality = "",
+                relatedItems = emptyList()
+            )
+        }
         return VideoDetails(
             id = matched.id,
             title = matched.title,
-            poster = matched.poster,
-            backdrop = matched.poster,
-            description = matched.description,
-            rating = matched.rating,
-            duration = matched.duration,
+            poster = matched.safePoster,
+            backdrop = matched.safeBackdrop,
+            description = matched.safeDescription,
+            rating = matched.safeRating,
+            duration = matched.safeDuration,
             videoUrl = matched.videoUrl,
-            releaseYear = matched.year,
+            releaseYear = matched.safeReleaseYear,
             genre = matched.category,
-            language = "English",
-            quality = matched.quality,
-            relatedItems = all.filter { it.id != id }.take(5).map { it.toMovieItem() }
+            language = matched.safeQuality,
+            quality = matched.safeQuality,
+            relatedItems = cachedContentList?.categories?.flatMap { it.items }
+                ?.filter { it.id != id }?.take(5).orEmpty()
         )
     }
 }

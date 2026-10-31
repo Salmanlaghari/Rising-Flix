@@ -3,7 +3,7 @@ package com.salmanlaghari.risingflix.data
 import java.net.URI
 import java.util.Locale
 
-/** Routes known title/detail pages to WebView and media URLs to Media3. */
+/** Distinguishes provider title pages from direct media URLs that Media3 can attempt to play. */
 internal object PlaybackUrlResolver {
     private val embeddedPageHosts = setOf(
         "themoviebox.xyz",

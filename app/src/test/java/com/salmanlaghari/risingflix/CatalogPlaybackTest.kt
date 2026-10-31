@@ -1,6 +1,7 @@
 package com.salmanlaghari.risingflix
 
 import com.salmanlaghari.risingflix.data.CatalogCache
+import com.salmanlaghari.risingflix.data.CatalogResolver
 import com.salmanlaghari.risingflix.data.Category
 import com.salmanlaghari.risingflix.data.ContentResponse
 import com.salmanlaghari.risingflix.data.MovieItem
@@ -18,7 +19,7 @@ import org.junit.Test
 class CatalogPlaybackTest {
 
     @Test
-    fun knownDetailPageUsesWebViewAndAdaptiveStreamsUseNativePlayback() {
+    fun knownDetailPageIsNotMediaAndAdaptiveStreamsAreRecognized() {
         assertTrue(PlaybackUrlResolver.isEmbeddedPage("https://themoviebox.xyz/detail/title-123"))
         assertTrue(PlaybackUrlResolver.isEmbeddedPage("https://sub.hdmoviescloud.com/watch/123"))
         assertFalse(PlaybackUrlResolver.isEmbeddedPage("https://cdn.example.org/video.m3u8?token=abc"))
@@ -36,7 +37,7 @@ class CatalogPlaybackTest {
     }
 
     @Test
-    fun bundledMovieBoxDetailLinksBecomePlayablePageUrls() {
+    fun bundledMovieBoxDetailLinksRemainProviderPagesWithoutDirectStreams() {
         assertEquals(
             "https://themoviebox.xyz/detail/example-title",
             TheMovieBoxContent.resolveFallbackVideoUrl(
@@ -47,6 +48,57 @@ class CatalogPlaybackTest {
             "https://themoviebox.xyz/detail/example-title",
             TheMovieBoxContent.resolveFallbackVideoUrl(mapOf("detailPath" to "example-title"))
         )
+    }
+
+    @Test
+    fun demoClipsAndKnownShortRuntimesAreRemovedFromTheMovieFeed() {
+        val feature = movie("feature", "https://cdn.example.org/feature.mp4").copy(duration = "1 h 36 m")
+        val short = movie("short", "https://cdn.example.org/short.mp4").copy(duration = "10 min")
+        val promo = movie("auto_promo", "https://cdn.example.org/promo.mp4").copy(duration = "15 sec")
+        val result = CatalogResolver.removeDemoAndShortForm(
+            ContentResponse(
+                featured = short,
+                categories = listOf(Category("movies", "Movies", "movie", listOf(short, promo, feature)))
+            )
+        )
+
+        assertEquals(listOf("feature"), result.categories.single().items.map(MovieItem::id))
+        assertEquals("feature", result.featured?.id)
+        assertEquals(96, CatalogResolver.durationMinutes("1 h 36 m"))
+        assertEquals(1, CatalogResolver.durationMinutes("15 sec"))
+    }
+
+    @Test
+    fun detailPageUsesOnlyAnExistingMatchingDirectStream() {
+        val page = movie("tmb-1", "https://themoviebox.xyz/detail/example")
+            .copy(title = "Example Film", year = "2020", duration = null)
+        val direct = movie("catalog-1", "https://cdn.example.org/example-film.mp4")
+            .copy(title = "Example Film", year = "2020", duration = "1 h 40 m")
+        val listing = ContentResponse(
+            featured = page,
+            categories = listOf(Category("movies", "Movies", "movie", listOf(page)))
+        )
+        val directCatalog = ContentResponse(
+            featured = direct,
+            categories = listOf(Category("movies", "Movies", "movie", listOf(direct)))
+        )
+
+        val enriched = CatalogResolver.enrichDetailPagesWithDirectStreams(listing, listOf(directCatalog))
+        val result = enriched.categories.single().items.single()
+
+        assertEquals("https://cdn.example.org/example-film.mp4", result.videoUrl)
+        assertEquals("1 h 40 m", result.duration)
+    }
+
+    @Test
+    fun pageWithoutDirectStreamRemainsUnplayable() {
+        val page = movie("tmb-2", "https://themoviebox.xyz/detail/unlisted")
+        val listing = ContentResponse(null, listOf(Category("movies", "Movies", "movie", listOf(page))))
+
+        val result = CatalogResolver.enrichDetailPagesWithDirectStreams(listing, emptyList())
+
+        assertEquals(page.videoUrl, result.categories.single().items.single().videoUrl)
+        assertFalse(PlaybackUrlResolver.isDirectStream(result.categories.single().items.single().videoUrl))
     }
 
     @Test
